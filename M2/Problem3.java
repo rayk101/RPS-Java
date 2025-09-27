@@ -23,7 +23,9 @@ public class Problem3 extends BaseClass {
         // final element value in array in order while being positive 
         Object[] output = new Object[arr.length];
         // Start Solution Edits
-        
+        for (int index = 0; index < arr.length; index++) {
+            Object element = arr[index];
+        }
 
         // End Solution Edits
         System.out.println("Output: ");
