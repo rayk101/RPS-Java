@@ -31,27 +31,28 @@ public class Problem4 extends BaseClass {
         // 2. Use trim(W3 schools) to get rid of all duplicate spaces. 
         // 3. convert to title case using a for loop iterating over elements 
         // 4. if statement to check each element and make each word uppercase 
-        String placeholderForModifiedPhrase = TextCase.toString;
+        
         String placeholderForMiddleCharacters = "";
         
         for(int i = 0; i <arr.length; i++){
             // Start Solution Edits
             
+            String original = arr[i];
             String cleaner = original.replaceAll("[^a-zA-Z0-9 ]", "");
             String clean = cleaner.trim().replaceAll("\\s+", " ");
 
             String[] text = clean.split(" ");
             StringBuilder Textcase = new StringBuilder();
-            for (int j = 0; j < words.length; j++) {
-                if (!words[j].isEmpty()) {
-                    TextCase.append(Character.toUpperCase(text[j].charAt(0)));
-                    TextCase.append(text[j].substring(1).toLowerCase()); //make sure rest is lowercase
+            for (int j = 0; j < text.length; j++) {
+                if (!text[j].isEmpty()) {
+                    Textcase.append(Character.toUpperCase(text[j].charAt(0)));
+                    Textcase.append(text[j].substring(1).toLowerCase()); //make sure rest is lowercase
                     if (j < text.length - 1) { //make sure not the last one 
-                        TextCase.append(" ");
+                        Textcase.append(" ");
                     }
                 }
             }
-
+            String placeholderForModifiedPhrase = Textcase.toString();
 
              // End Solution Edits
             System.out.println(String.format("Index[%d] \"%s\" | Middle: \"%s\"",i, placeholderForModifiedPhrase, placeholderForMiddleCharacters));
