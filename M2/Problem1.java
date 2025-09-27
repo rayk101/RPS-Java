@@ -13,6 +13,11 @@ public class Problem1 extends BaseClass {
         // Step 1: sketch out plan using comments (include ucid and date)
         // Step 2: Add/commit your outline of comments (required for full credit)
         // Step 3: Add code to solve the problem (add/commit as needed)
+        // Date: 9/27/25
+        // Solving problem solution steps: 
+        // 1. Use a foor loop to loop through the array 
+        // 2. Check if number is odd by doing % 2 not equal 0 
+        // 3. If it is odd print out of the number followed by comma 
         System.out.print("Output Array: ");
         // Start Solution Edits
         
@@ -22,7 +27,7 @@ public class Problem1 extends BaseClass {
         System.out.println("______________________________________");
     }
     public static void main(String[] args) {
-        final String ucid = "mt85"; // <-- change to your UCID
+        final String ucid = "rk975"; // <-- change to your UCID
         // no edits below this line
         printHeader(ucid, 1);
         printOdds(array1,1);
