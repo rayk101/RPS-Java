@@ -37,6 +37,9 @@ public class Problem4 extends BaseClass {
         for(int i = 0; i <arr.length; i++){
             // Start Solution Edits
             
+            String cleaner = original.replaceAll("[^a-zA-Z0-9 ]", "");
+            clean = cleaner.trim().replaceAll("\\s+", " ");
+
              // End Solution Edits
             System.out.println(String.format("Index[%d] \"%s\" | Middle: \"%s\"",i, placeholderForModifiedPhrase, placeholderForMiddleCharacters));
         }
