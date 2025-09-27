@@ -26,10 +26,13 @@ public class Problem2 extends BaseClass {
         double total = 0;
         // Start Solution Edits
         // Solve Challenge 1 here
-        
+        for (double number : arr) {
+            total += number;
+}
+
       
         // Solve Challenge 2 here
-        Object modifiedTotal = "?";
+        String modifiedTotal = String.format("%.2f", total)
 
         // End Solution Edits
         System.out.println("Total Raw Value: " +total);
