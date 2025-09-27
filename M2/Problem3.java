@@ -15,6 +15,12 @@ public class Problem3 extends BaseClass {
         // Step 1: sketch out plan using comments (include ucid and date)
         // Step 2: Add/commit your outline of comments (required for full credit)
         // Step 3: Add code to solve the problem (add/commit as needed)
+        // 9/27/25 
+        // Solution to solve this problem: 1. Use a for loop to go through each elemet in the array
+        // Then use if statements to check instance of data type for each element
+        // If element matches the data type use the math.abs(W3 schools) to make the element posistive 
+        // Convert element back to orginal data type 
+        // final element value in array in order while being positive 
         Object[] output = new Object[arr.length];
         // Start Solution Edits
         
@@ -27,7 +33,7 @@ public class Problem3 extends BaseClass {
     }
 
     public static void main(String[] args) {
-        final String ucid = "mt85"; // <-- change to your UCID
+        final String ucid = "rk975"; // <-- change to your UCID
         // no edits below this line
         printHeader(ucid, 3);
         bePositive(array1, 1);
