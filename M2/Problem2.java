@@ -18,6 +18,11 @@ public class Problem2 extends BaseClass {
         // Step 1: sketch out plan using comments (include ucid and date)
         // Step 2: Add/commit your outline of comments (required for full credit)
         // Step 3: Add code to solve the problem (add/commit as needed)
+        // 9/27/25
+        // Steps to solve: 1. Double total will hold the entire sum 
+        // 2. I will use a for each loop to iterate over the array 
+        // 3. Add to the total sum 
+        // 4. Format the string output to show 2 decimals by using string formatter (W3 schools). 
         double total = 0;
         // Start Solution Edits
         // Solve Challenge 1 here
@@ -34,7 +39,7 @@ public class Problem2 extends BaseClass {
     }
 
     public static void main(String[] args) {
-        final String ucid = "mt85"; // <-- change to your UCID
+        final String ucid = "rk975"; // <-- change to your UCID
         // no edits below this line
         printHeader(ucid, 2);
         sumValues(array1, 1);
