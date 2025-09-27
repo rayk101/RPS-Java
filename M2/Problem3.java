@@ -25,6 +25,14 @@ public class Problem3 extends BaseClass {
         // Start Solution Edits
         for (int index = 0; index < arr.length; index++) {
             Object element = arr[index]
+            if (element instanceof Integer) {
+                output[index] = Math.abs((Integer) element);
+            } else if (element instanceof Double) {
+                output[index] = Math.abs((Double) element);
+            } else if (element instanceof Float) {
+                output[index] = Math.abs((Float) element);
+            } else if (element instanceof String) {
+
 
         }
 
