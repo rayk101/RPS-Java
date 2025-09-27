@@ -32,7 +32,7 @@ public class Problem2 extends BaseClass {
 
       
         // Solve Challenge 2 here
-        String modifiedTotal = String.format("%.2f", total)
+        String modifiedTotal = String.format("%.2f", total);
 
         // End Solution Edits
         System.out.println("Total Raw Value: " +total);
