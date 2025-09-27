@@ -18,9 +18,15 @@ public class Problem1 extends BaseClass {
         // 1. Use a foor loop to loop through the array 
         // 2. Check if number is odd by doing % 2 not equal 0 
         // 3. If it is odd print out of the number followed by comma 
+        // 4. Turns out there is a extra comma at end we need to delete and get rid of 
         System.out.print("Output Array: ");
         // Start Solution Edits
-        
+        for (int i = 0; i < arr.length; i++) {
+            if (arr[i] % 2 != 0) {
+                System.out.print(arr[i] + ",");
+    }
+}
+
 
         // End Solution Edits
         System.out.println("");
