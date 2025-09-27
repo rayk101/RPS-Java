@@ -18,13 +18,14 @@ public class Problem3 extends BaseClass {
         // 9/27/25 
         // Solution to solve this problem: 1. Use a for loop to go through each elemet in the array
         // Then use if statements to check instance of data type for each element
-        // If element matches the data type use the math.abs(W3 schools) to make the element posistive 
+        // If element matches the data type by using built in instanceOf and use the math.abs(W3 schools) to make the element posistive 
         // Convert element back to orginal data type 
         // final element value in array in order while being positive 
         Object[] output = new Object[arr.length];
         // Start Solution Edits
         for (int index = 0; index < arr.length; index++) {
-            Object element = arr[index];
+            Object element = arr[index]
+
         }
 
         // End Solution Edits
