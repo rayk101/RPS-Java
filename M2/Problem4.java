@@ -40,6 +40,19 @@ public class Problem4 extends BaseClass {
             String cleaner = original.replaceAll("[^a-zA-Z0-9 ]", "");
             clean = cleaner.trim().replaceAll("\\s+", " ");
 
+            String[] text = cleaner.split(" ")
+            StringBuilder Textcase = new StringBuilder()
+            for (int j = 0; j < words.length; j++) {
+                if (!words[j].isEmpty()) {
+                    TextCase.append(Character.toUpperCase(words[j].charAt(0)));
+                    TextCase.append(words[j].substring(1).toLowerCase()); //make sure rest is lowercase
+                    if (j < words.length - 1) { //make sure not the last one 
+                        TextCase.append(" ");
+                    }
+                }
+            }
+
+
              // End Solution Edits
             System.out.println(String.format("Index[%d] \"%s\" | Middle: \"%s\"",i, placeholderForModifiedPhrase, placeholderForMiddleCharacters));
         }
