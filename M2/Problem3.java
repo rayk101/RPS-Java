@@ -24,7 +24,7 @@ public class Problem3 extends BaseClass {
         Object[] output = new Object[arr.length];
         // Start Solution Edits
         for (int index = 0; index < arr.length; index++) {
-            Object element = arr[index]
+            Object element = arr[index];
             if (element instanceof Integer) {
                 output[index] = Math.abs((Integer) element);
             } else if (element instanceof Double) {
@@ -39,11 +39,14 @@ public class Problem3 extends BaseClass {
                 } else {
                     int intValue = Integer.parseInt(text);
                     output[index] = String.valueOf(Math.abs(intValue));
-                } else {
-                         output[index] = element; 
-    }
+                } 
+            
+        } else {
+            output[index] = element; 
+   
 
  }
+        }
 
         // End Solution Edits
         System.out.println("Output: ");
