@@ -26,6 +26,11 @@ public class Problem4 extends BaseClass {
         // Step 1: sketch out plan using comments (include ucid and date)
         // Step 2: Add/commit your outline of comments (required for full credit)
         // Step 3: Add code to solve the problem (add/commit as needed)
+        // 9/27/25
+        // Steps for the solution: 1. Use the reaplce.all(W3 schools) method for non alphanumeric letters
+        // 2. Use trim(W3 schools) to get rid of all duplicate spaces. 
+        // 3. convert to title case using a for loop iterating over elements 
+        // 4. if statement to check each element and make each word uppercase 
         String placeholderForModifiedPhrase = "";
         String placeholderForMiddleCharacters = "";
         
@@ -43,7 +48,7 @@ public class Problem4 extends BaseClass {
     }
 
     public static void main(String[] args) {
-        final String ucid = "mt85"; // <-- change to your UCID
+        final String ucid = "rk975"; // <-- change to your UCID
         // No edits below this line
         printHeader(ucid, 4);
 
