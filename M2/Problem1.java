@@ -21,9 +21,14 @@ public class Problem1 extends BaseClass {
         // 4. Turns out there is a extra comma at end we need to delete and get rid of 
         System.out.print("Output Array: ");
         // Start Solution Edits
+        boolean printfirst = false;
         for (int i = 0; i < arr.length; i++) {
             if (arr[i] % 2 != 0) {
-                System.out.print(arr[i] + ",");
+                if (printfirst) {
+                    System.out.print(",");
+        }
+            System.out.print(arr[i]);
+            printfirst = true;
     }
 }
 
