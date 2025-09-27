@@ -31,7 +31,7 @@ public class Problem4 extends BaseClass {
         // 2. Use trim(W3 schools) to get rid of all duplicate spaces. 
         // 3. convert to title case using a for loop iterating over elements 
         // 4. if statement to check each element and make each word uppercase 
-        String placeholderForModifiedPhrase = "";
+        String placeholderForModifiedPhrase = TextCase.toString;
         String placeholderForMiddleCharacters = "";
         
         for(int i = 0; i <arr.length; i++){
