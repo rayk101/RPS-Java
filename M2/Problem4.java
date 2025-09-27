@@ -40,8 +40,8 @@ public class Problem4 extends BaseClass {
             String cleaner = original.replaceAll("[^a-zA-Z0-9 ]", "");
             clean = cleaner.trim().replaceAll("\\s+", " ");
 
-            String[] text = cleaner.split(" ")
-            StringBuilder Textcase = new StringBuilder()
+            String[] text = cleaner.split(" ");
+            StringBuilder Textcase = new StringBuilder();
             for (int j = 0; j < words.length; j++) {
                 if (!words[j].isEmpty()) {
                     TextCase.append(Character.toUpperCase(words[j].charAt(0)));
