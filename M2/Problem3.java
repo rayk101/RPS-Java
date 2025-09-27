@@ -32,6 +32,14 @@ public class Problem3 extends BaseClass {
             } else if (element instanceof Float) {
                 output[index] = Math.abs((Float) element);
             } else if (element instanceof String) {
+                String text = (String) element;
+                if (text.contains(".")) {
+                    double decimalValue = Double.parseDouble(text);
+                    output[index] = String.valueOf(Math.abs(decimalValue));
+                } else {
+                    int intValue = Integer.parseInt(text);
+                    output[index] = String.valueOf(Math.abs(intValue));
+                }
 
 
         }
