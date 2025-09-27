@@ -39,10 +39,11 @@ public class Problem3 extends BaseClass {
                 } else {
                     int intValue = Integer.parseInt(text);
                     output[index] = String.valueOf(Math.abs(intValue));
-                }
+                } else {
+                         output[index] = element; 
+    }
 
-
-        }
+ }
 
         // End Solution Edits
         System.out.println("Output: ");
