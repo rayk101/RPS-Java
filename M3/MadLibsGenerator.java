@@ -14,11 +14,12 @@ Challenge 3: Mad Libs Generator (Randomized Stories)
     - Any word the user types is acceptable, no need to verify if it matches the placeholder type
     - Any placeholder with underscores should display with spaces instead
 - Replace placeholders with user input (assign back to original slot in collection)
+- Date: 10/13/25
 */
 
 public class MadLibsGenerator extends BaseClass {
     private static final String STORIES_FOLDER = "M3/stories";
-    private static String ucid = "mt85"; // <-- change to your ucid
+    private static String ucid = "rk975"; // <-- change to your ucid
 
     public static void main(String[] args) {
         printHeader(ucid, 3,
