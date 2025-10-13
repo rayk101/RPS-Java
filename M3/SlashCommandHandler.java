@@ -47,6 +47,22 @@ public class SlashCommandHandler extends BaseClass {
                 } else {
                     System.out.println("Hello, " + parts[1] + "!");
                 }
+            } else if (input.toLowerCase().startswith("/roll ")){
+                String [] parts = input.split(" ", 2);
+                if (parts.length < 2 || !parts[1].matches("\\d+d\\d+")){
+                    System.out.printnln("Error, invalid format. Use /roll <num>d<sides>.");   
+                } else {
+                    String[] diceParts = parts[1].toLowerCase().split("d");
+                    int num = Integer.parseInt(diceParts[0]);
+                    int sides = Integer.parseInt(diceParts[1]);
+                    int total = 0; 
+                    for (int = 0; i < num; i++){
+                        total += rand.nextInt(sides) + 1; 
+                    }
+                    System.out.println("Rolled " + num + "d" + sides + " and got " + total + "!");
+                }
+                
+
             }
             // get entered text
 
