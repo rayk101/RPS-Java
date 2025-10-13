@@ -1,4 +1,5 @@
 package M3;
+import java.text.DecimalFormat;
 
 /*
 Challenge 1: Command-Line Calculator
@@ -36,16 +37,17 @@ public class CommandLineCalculator extends BaseClass {
             String num2Str = args[2];
             String operator = args[1]; 
             // check if operator is addition or subtraction
-            if (!operator.equals("+") && !operator.equals("-")) {
-42                 System.out.println("unsupported operator, use +, -");
-43                 printFooter(ucid, 1);
-44                 return;
-45             }
+        if (!operator.equals("+") && !operator.equals("-")) {
+            System.out.println("Error: Unsupported operator. Use + or -.");
+            printFooter(ucid, 1);
+            return;
+}
+
 
             // check the type of each number and choose appropriate parsing
             double num1 = Double.parseDouble(num1Str);
             double num2 = Double.parseDouble(num2Str);
-            double result = operator.equals("+") ? num1 + num2 : num 1 - num 2; 
+            double result = operator.equals("+") ? num1 + num2 : num1 - num2; 
 
             int precision1 = getDecimalPlaces(num1Str);
             int precision2 = getDecimalPlaces(num2Str);
@@ -59,7 +61,7 @@ public class CommandLineCalculator extends BaseClass {
                     pattern.append("0");
                 }
             }
-            DecimalFormat df = DecimalFormat(pattern.toString());
+            DecimalFormat df = new DecimalFormat(pattern.toString());
             System.out.println("Result: " + df.format(result));
             // i.e., 0.1 + 0.2 would show as one decimal place (0.3), 0.11 + 0.2 would shows
             // as two (0.31), etc
@@ -71,7 +73,7 @@ public class CommandLineCalculator extends BaseClass {
         printFooter(ucid, 1);
     }
     private static int getDecimalPlaces(String numStr){
-        int index = numStr.indexOf(".")
+        int index = numStr.indexOf(".");
         return index < 0 ? 0 : numStr.length() - index - 1; 
     }
 }
