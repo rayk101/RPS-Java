@@ -10,6 +10,11 @@ Challenge 1: Command-Line Calculator
 - Display an error for invalid inputs or unsupported operators
 - Capture 5 variations of tests
 - Date: 10/13/25
+- Steps to solve: 1. Parse through the user inputs
+  2. Validate the type of operator 
+  3. Detect if there is decimal usage 
+  4. perform the calculation of either addition or subtraction. 
+  5. format the output correclty. 
 */
 
 public class CommandLineCalculator extends BaseClass {
