@@ -56,7 +56,7 @@ public class SlashCommandHandler extends BaseClass {
                     int num = Integer.parseInt(diceParts[0]);
                     int sides = Integer.parseInt(diceParts[1]);
                     int total = 0; 
-                    for (int = 0; i < num; i++){
+                    for (int = 0; i < num; i++) {
                         total += rand.nextInt(sides) + 1; 
                     }
                     System.out.println("Rolled " + num + "d" + sides + " and got " + total + "!");
