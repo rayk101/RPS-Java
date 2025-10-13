@@ -6,6 +6,9 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Random;
 import java.util.Scanner;
+import java.io.FileReader;
+import java.io.IOException;
+
 
 
 /*
@@ -44,8 +47,10 @@ public class MadLibsGenerator extends BaseClass {
         }
         List<String> lines = new ArrayList<>();
         // Start edits
+        File[] storyFiles = folder.listFiles();
+        File selectedFile = storyFiles[new Random().nextInt(storyFiles.length)];
         try {
-            Scanner fileScanner = new Scanner(selectedFile); 
+            Scanner fileScanner = new Scanner(selectedFile);
 
             while (fileScanner.hasNextLine()) { 
                 lines.add(fileScanner.nextLine());
@@ -61,7 +66,7 @@ public class MadLibsGenerator extends BaseClass {
                     if (start >= 0 && end > start){
                         String placeholder = line.substring(start + 1, end);
                         String displayPrompt = placeholder.replace("_", " ");
-                        System.out.print("Enter a(n) " + displayPrompt + ": ")
+                        System.out.print("Enter a(n) " + displayPrompt + ": ");
                         String userInput = scanner.nextLine(); 
                         line = line.substring(0, start) + userInput + line.substring(end + 1);
                     } else {
