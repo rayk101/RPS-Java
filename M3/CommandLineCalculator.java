@@ -9,10 +9,11 @@ Challenge 1: Command-Line Calculator
 - Ensures correct decimal places in output based on input (e.g., 0.1 + 0.2 → 1 decimal place)
 - Display an error for invalid inputs or unsupported operators
 - Capture 5 variations of tests
+- Date: 10/13/25
 */
 
 public class CommandLineCalculator extends BaseClass {
-    private static String ucid = "mt85"; // <-- change to your ucid
+    private static String ucid = "rk975"; // <-- change to your ucid
 
     public static void main(String[] args) {
         printHeader(ucid, 1, "Objective: Implement a calculator using command-line arguments.");
