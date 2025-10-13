@@ -58,8 +58,18 @@ public class MadLibsGenerator extends BaseClass {
                 while (line.contains("<") && line.contains(">")){
                     int start = line.indexOf("<");
                     int end = line.indexOf(">", start);
-                    
+                    if (start >= 0 && end > start){
+                        String placeholder = line.substring(start + 1, end);
+                        String displayPrompt = placeholder.replace("_", " ");
+                        System.out.print("Enter a(n) " + displayPrompt + ": ")
+                        String userInput = scanner.nextLine(); 
+                        line = line.substring(0, start) + userInput + line.substring(end + 1);
+                    } else {
+                        break;
+                    }
+
                 }
+                lines.set(i, line);
             }
         }
 
