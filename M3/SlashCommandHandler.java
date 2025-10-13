@@ -61,31 +61,16 @@ public class SlashCommandHandler extends BaseClass {
                     }
                     System.out.println("Rolled " + num + "d" + sides + " and got " + total + "!");
                 }
-                
-
-            }
-            // get entered text
-
-            // check if greet
-            //// process greet
-
-            // check if roll
-            //// process roll
-            //// handle invalid formats
-
-            // check if echo
-            //// process echo
-
-            // check if quit
-            //// process quit
-
-            // handle invalid commnads
-
-            // delete this condition/block, it's just here so the sample runs without edits
-            if (1 == 1) {
-                System.out.println("Breaking loop");
-                break;
-            }
+                 } else if (input.toLowerCase().startsWith("/echo ")) {    // Step 3: Match /echo
+                    String[] parts = input.split(" ", 2);
+                    if (parts.length < 2 || parts[1].isEmpty()) {
+                        System.out.println("Error: Missing message for /echo."); // Step 5
+                }   else {
+                        System.out.println(parts[1]);
+                }
+            }     else {
+                    System.out.println("Error: Unrecognized command.");    // Step 5: Unknown command
+             }
         }
 
         printFooter(ucid, 2);
