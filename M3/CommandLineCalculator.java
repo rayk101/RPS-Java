@@ -52,6 +52,15 @@ public class CommandLineCalculator extends BaseClass {
             int maxPrecision = Math.max(precision1, precision2);
             // generate the equation result (Important: ensure decimals display as the
             // longest decimal passed)
+            StringBuilder pattern = new StringBuilder("0");
+            if (maxPrecision > 0 ){
+                pattern.append(".");
+                for (int i = 0; i < maxPrecision; i++){
+                    pattern.append("0");
+                }
+            }
+            DecimalFormat df = DecimalFormat(pattern.toString());
+            System.out.println("Result: " + df.format(result));
             // i.e., 0.1 + 0.2 would show as one decimal place (0.3), 0.11 + 0.2 would shows
             // as two (0.31), etc
 
@@ -60,5 +69,9 @@ public class CommandLineCalculator extends BaseClass {
         }
 
         printFooter(ucid, 1);
+    }
+    private static int getDecimalPlaces(String numStr){
+        int index = numStr.indexOf(".")
+        return index < 0 ? 0 : numStr.length() - index - 1; 
     }
 }
