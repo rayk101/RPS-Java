@@ -12,12 +12,13 @@ Challenge 2: Simple Slash Command Handler
 - Print an error for unrecognized commands
 - Print errors for invalid command formats (when applicable)
 - Capture 3 variations of each command except "/quit"
+- Date: 10/13/25
 */
 
 import java.util.Scanner;
 
 public class SlashCommandHandler extends BaseClass {
-    private static String ucid = "mt85"; // <-- change to your UCID
+    private static String ucid = "rk975"; // <-- change to your UCID
 
     public static void main(String[] args) {
         printHeader(ucid, 2, "Objective: Implement a simple slash command parser.");
