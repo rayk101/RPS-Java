@@ -1,9 +1,12 @@
 package M3;
 
 import java.io.File;
+import java.io.FileNotFoundException;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Random;
 import java.util.Scanner;
+
 
 /*
 Challenge 3: Mad Libs Generator (Randomized Stories)
@@ -15,6 +18,11 @@ Challenge 3: Mad Libs Generator (Randomized Stories)
     - Any placeholder with underscores should display with spaces instead
 - Replace placeholders with user input (assign back to original slot in collection)
 - Date: 10/13/25
+- Steps to solve: 1. Randomly select a story text file from the story folder usign File[] and Random
+2. Reach each line of the selected line into an array using scanner
+3. detect the adjectives placeholders and prompt user for input using Scanner.nextLine() 
+4. Replace placeholders in each line with the users input and update the original list 
+5. print the final story by joining all lines
 */
 
 public class MadLibsGenerator extends BaseClass {
