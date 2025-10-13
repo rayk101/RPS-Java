@@ -44,6 +44,24 @@ public class MadLibsGenerator extends BaseClass {
         }
         List<String> lines = new ArrayList<>();
         // Start edits
+        try {
+            Scanner fileScanner = new Scanner(selectedFile); 
+
+            while (fileScanner.hasNextLine()) { 
+                lines.add(fileScanner.nextLine());
+            }
+
+            fileScanner.close();
+
+            for (int i = 0; i < lines.size(); i++){
+                String line = lines.get(i);
+                while (line.contains("<") && line.contains(">")){
+                    int start = line.indexOf("<");
+                    int end = line.indexOf(">", start);
+                    
+                }
+            }
+        }
 
         // load a random story file
 
