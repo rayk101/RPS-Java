@@ -71,20 +71,15 @@ public class MadLibsGenerator extends BaseClass {
                 }
                 lines.set(i, line);
             }
+
+        } catch (FileNotFoundException e){
+            System.out.println("Error,could not read the stories file");
+            printFooter(ucid, 3);
+            scanner.close();
+            return;
         }
 
-        // load a random story file
-
-        // parse the story lines
-
-        // iterate through the lines
-
-        // prompt the user for each placeholder (note: there may be more than one
-        // placeholder in a line)
-
-        // apply the update to the same collection slot
-
-        // End edits
+        
         System.out.println("\nYour Completed Mad Libs Story:\n");
         StringBuilder finalStory = new StringBuilder();
         for (String line : lines) {
