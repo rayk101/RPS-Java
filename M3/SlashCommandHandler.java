@@ -37,20 +37,20 @@ public class SlashCommandHandler extends BaseClass {
             System.out.print("Enter command: ");
             String input  = scanner.nextLine().trim();
 
-            if(input.equalIgnoreCase("/quit")){
+            if(input.equalsIgnoreCase("/quit")){
                 System.out.println("Exiting the program");
                 break; 
-            } else if (input.toLowerCase().startswith("/greet")){
+            } else if (input.toLowerCase().startsWith("/greet")){
                 String[] parts = input.split(" ", 2);
-                if (parts.length < 2 || parts[1].isempty()){
+                if (parts.length < 2 || parts[1].isEmpty()){
                     System.out.println("Error, missing name for /greet.");
                 } else {
                     System.out.println("Hello, " + parts[1] + "!");
                 }
-            } else if (input.toLowerCase().startswith("/roll ")){
+            } else if (input.toLowerCase().startsWith("/roll ")){
                 String [] parts = input.split(" ", 2);
                 if (parts.length < 2 || !parts[1].matches("\\d+d\\d+")){
-                    System.out.printnln("Error, invalid format. Use /roll <num>d<sides>.");   
+                    System.out.println("Error, invalid format. Use /roll <num>d<sides>.");   
                 } else {
                     String[] diceParts = parts[1].toLowerCase().split("d");
                     int num = Integer.parseInt(diceParts[0]);
