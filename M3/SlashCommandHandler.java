@@ -21,6 +21,7 @@ Challenge 2: Simple Slash Command Handler
 */
 
 import java.util.Scanner;
+import java.util.Random;
 
 public class SlashCommandHandler extends BaseClass {
     private static String ucid = "rk975"; // <-- change to your UCID
@@ -29,11 +30,24 @@ public class SlashCommandHandler extends BaseClass {
         printHeader(ucid, 2, "Objective: Implement a simple slash command parser.");
 
         Scanner scanner = new Scanner(System.in);
-
+        Random rand = new Random(); 
         // Can define any variables needed here
 
         while (true) {
             System.out.print("Enter command: ");
+            String input  = scanner.nextLine().trim();
+
+            if(input.equalIgnoreCase("/quit")){
+                System.out.println("Exiting the program");
+                break; 
+            } else if (input.toLowerCase().startswith("/greet")){
+                String[] parts = input.split(" ", 2);
+                if (parts.length < 2 || parts[1].isempty()){
+                    System.out.println("Error, missing name for /greet.");
+                } else {
+                    System.out.println("Hello, " + parts[1] + "!");
+                }
+            }
             // get entered text
 
             // check if greet
