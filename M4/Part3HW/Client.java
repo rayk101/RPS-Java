@@ -126,6 +126,13 @@ public class Client {
             sendToServer(String.join(",", commandData));
             wasCommand = true;
         }
+
+        else if ("/flip".equalsIgnoreCase(text.trim())) {
+            String[] commandData = { Constants.COMMAND_TRIGGER, "flip" };
+            sendToServer(String.join(",", commandData));
+            wasCommand = true;
+        }
+
         return wasCommand;
     }
 
