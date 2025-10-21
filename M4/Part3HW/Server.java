@@ -4,6 +4,7 @@ import java.io.IOException;
 import java.net.ServerSocket;
 import java.net.Socket;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.Random;
 
 public class Server {
     private int port = 3000;
@@ -143,7 +144,7 @@ public class Server {
         String message = String.format("User[%s] flipped a coin and got %s", sender.getClientId(), result);
         relay(null, message); // relay as server message
     }
-    
+
     public static void main(String[] args) {
         System.out.println("Server Starting");
         Server server = new Server();
