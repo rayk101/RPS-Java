@@ -151,6 +151,23 @@ public class Server {
         // 2. Locate receiver from connectedClients.
         // 3. Construct "PM from <who>: <message>".
         // 4. Send only to sender and receiver.
+
+    protected synchronized void handlePrivateMessage(ServerThread sender, long targetId, String messageText) {
+        ServerThread receiver = connectedClients.get(targetId);
+
+        if (receiver == null) {
+            // Notify sender that the target user doesn't exist
+            sender.sendToClient("Server: User[" + targetId + "] not found or not connected.");
+            return;
+        }
+
+        String formatted = String.format("PM from User[%s]: %s", sender.getClientId(), messageText);
+
+        // Send to both sender and receiver only
+        sender.sendToClient("Server: " + formatted);
+        receiver.sendToClient("Server: " + formatted);
+    }
+    
     public static void main(String[] args) {
         System.out.println("Server Starting");
         Server server = new Server();
