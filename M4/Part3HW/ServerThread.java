@@ -212,6 +212,13 @@ public class ServerThread extends Thread {
                         wasCommand = true;
                         break;
 
+                    // date 10/21/25 - UCID - rk975
+                    // Added /pm command handling logic.
+                    // Steps:
+                    // 1. Parse targetId and message from commandData.
+                    // 2. Call server.handlePrivateMessage(sender, targetId, messageText).
+
+                    
                     // added more cases/breaks as needed for other commands
                     default:
                         break;
