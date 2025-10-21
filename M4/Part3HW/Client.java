@@ -98,6 +98,10 @@ public class Client {
      * @return true if the text was a command or triggered a command
      * @throws IOException
      */
+    // 10/21/25 - UCID rk975
+    // Steps taken to solve this: 1. add another elif statement
+    // 2. detect the user input for /flip command 3. create data array 
+    // 4. join the array to a string 5. Send the command to the server
     private boolean processClientCommand(String text) throws IOException {
         boolean wasCommand = false;
         if (isConnection(text)) {
