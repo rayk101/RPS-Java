@@ -201,6 +201,13 @@ public class ServerThread extends Thread {
                         server.handleReverseText(this, relevantText);
                         wasCommand = true;
                         break;
+
+                    // date 10/21/25 - UCID - rk975
+                    // Steps taken. Matched "flip" command in switch.
+                    // Invoked server’s handleFlipCommand() method.
+                    // Passed current client thread context.
+                    // Set command flag to true.
+                    
                     // added more cases/breaks as needed for other commands
                     default:
                         break;
