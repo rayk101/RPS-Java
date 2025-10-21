@@ -131,7 +131,11 @@ public class Server {
         relay(sender, text);
     }
     // end handle actions
-
+    // 10/21/25 UCID - rk975
+    // Steps to solve: 1. Instantiated Random for pseudo-random generation.
+    // 2. Evaluated boolean to determine coin state.
+    // 3. Constructed formatted output string dynamically.
+    // 4. Invoked relay() to multicast message.
     public static void main(String[] args) {
         System.out.println("Server Starting");
         Server server = new Server();
