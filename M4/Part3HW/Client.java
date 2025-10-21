@@ -139,7 +139,18 @@ public class Client {
         // 3. Format message and send it to the server.
         // 4. ServerThread and Server handle the rest.
 
-        
+        else if (text.startsWith("/pm ")) {
+            String[] parts = text.trim().split(" ", 3); 
+            if (parts.length >= 3) {
+                String targetId = parts[1].trim();
+                String message = parts[2].trim();
+                String[] commandData = { Constants.COMMAND_TRIGGER, "pm", targetId, message };
+                sendToServer(String.join(",", commandData));
+            } else {
+                System.out.println("Usage: /pm <targetId> <message>");
+            }
+            wasCommand = true;
+        }
 
         return wasCommand;
     }
