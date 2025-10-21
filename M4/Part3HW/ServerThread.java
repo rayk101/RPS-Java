@@ -207,7 +207,11 @@ public class ServerThread extends Thread {
                     // Invoked server’s handleFlipCommand() method.
                     // Passed current client thread context.
                     // Set command flag to true.
-                    
+                    case "flip":
+                        server.handleFlipCommand(this);
+                        wasCommand = true;
+                        break;
+
                     // added more cases/breaks as needed for other commands
                     default:
                         break;
