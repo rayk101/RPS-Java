@@ -133,6 +133,14 @@ public class Client {
             wasCommand = true;
         }
 
+        // 10/21/25 - UCID rk975
+        // Steps taken to solve this: 1. Added support for new /pm command.
+        // 2. Parse target id and message from user input.
+        // 3. Format message and send it to the server.
+        // 4. ServerThread and Server handle the rest.
+
+        
+
         return wasCommand;
     }
 
