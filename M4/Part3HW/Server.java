@@ -136,6 +136,14 @@ public class Server {
     // 2. Evaluated boolean to determine coin state.
     // 3. Constructed formatted output string dynamically.
     // 4. Invoked relay() to multicast message.
+
+    protected synchronized void handleFlipCommand(ServerThread sender) {
+        Random random = new Random();
+        String result = random.nextBoolean() ? "Heads" : "Tails";
+        String message = String.format("User[%s] flipped a coin and got %s", sender.getClientId(), result);
+        relay(null, message); // relay as server message
+    }
+    
     public static void main(String[] args) {
         System.out.println("Server Starting");
         Server server = new Server();
