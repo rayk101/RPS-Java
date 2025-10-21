@@ -144,7 +144,13 @@ public class Server {
         String message = String.format("User[%s] flipped a coin and got %s", sender.getClientId(), result);
         relay(null, message); // relay as server message
     }
-
+    // 10/21/25 UCID - rk975
+        // Added new private message logic for /pm command
+        // Steps to solve:
+        // 1. Extract target user id and message text.
+        // 2. Locate receiver from connectedClients.
+        // 3. Construct "PM from <who>: <message>".
+        // 4. Send only to sender and receiver.
     public static void main(String[] args) {
         System.out.println("Server Starting");
         Server server = new Server();
