@@ -159,6 +159,17 @@ public class Client {
         // 2) Extract message text
         // 3) Send as: [cmd],shuffle,<message>
 
+        else if (text.startsWith("/shuffle")) {
+            String message = text.replaceFirst("(?i)^/shuffle\\s*", "").trim();
+            if (message.isEmpty()) {
+                System.out.println("Usage: /shuffle <message>");
+            } else {
+                String[] commandData = { Constants.COMMAND_TRIGGER, "shuffle", message };
+                sendToServer(String.join(",", commandData));
+            }
+            wasCommand = true;
+        }
+
         return wasCommand;
     }
 
