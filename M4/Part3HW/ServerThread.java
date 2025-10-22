@@ -232,7 +232,11 @@ public class ServerThread extends Thread {
                         }
                         wasCommand = true;
                         break;
-                        
+                        // date 10/21/25 - UCID - rk975
+                    // Added /shuffle command handling logic.
+                    // Steps:
+                    // 1. Extract text portion after command.
+                    // 2. Call server.handleShuffleMessage(sender, text)
                     // added more cases/breaks as needed for other commands
                     default:
                         break;
