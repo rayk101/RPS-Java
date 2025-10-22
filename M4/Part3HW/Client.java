@@ -152,6 +152,13 @@ public class Client {
             wasCommand = true;
         }
 
+        // 10/21/25 - UCID rk975
+        // Added support for /shuffle <message>
+        // Steps:
+        // 1) Detect "/shuffle"
+        // 2) Extract message text
+        // 3) Send as: [cmd],shuffle,<message>
+
         return wasCommand;
     }
 
