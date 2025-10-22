@@ -218,7 +218,21 @@ public class ServerThread extends Thread {
                     // 1. Parse targetId and message from commandData.
                     // 2. Call server.handlePrivateMessage(sender, targetId, messageText).
 
-                    
+                    case "pm":
+                        if (commandData.length >= 4) {
+                            try {
+                                long targetId = Long.parseLong(commandData[2].trim());
+                                String messageText = String.join(" ", Arrays.copyOfRange(commandData, 3, commandData.length));
+                                server.handlePrivateMessage(this, targetId, messageText);
+                            } catch (NumberFormatException e) {
+                                sendToClient("Server: Invalid target user ID.");
+                            }
+                        } else {
+                            sendToClient("Server: Usage - /pm <targetId> <message>");
+                        }
+                        wasCommand = true;
+                        break;
+                        
                     // added more cases/breaks as needed for other commands
                     default:
                         break;
