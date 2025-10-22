@@ -167,7 +167,16 @@ public class Server {
         sender.sendToClient("Server: " + formatted);
         receiver.sendToClient("Server: " + formatted);
     }
-    
+
+    // 10/21/25 UCID - rk975
+    // Added handleShuffleMessage() for /shuffle command
+    // Steps:
+    // 1. Convert message string into a List<Character>.
+    // 2. Randomly shuffle characters using Collections.shuffle().
+    // 3. Join shuffled chars into a string.
+    // 4. Broadcast "Shuffled from <who>: <shuffled_message>" from the Server.
+
+
     public static void main(String[] args) {
         System.out.println("Server Starting");
         Server server = new Server();
