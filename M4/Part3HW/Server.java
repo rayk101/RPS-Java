@@ -176,7 +176,28 @@ public class Server {
     // 3. Join shuffled chars into a string.
     // 4. Broadcast "Shuffled from <who>: <shuffled_message>" from the Server.
 
+    protected synchronized void handleShuffleMessage(ServerThread sender, String text) {
+        if (text == null || text.trim().isEmpty()) {
+            sender.sendToClient("Server: Usage - /shuffle <message>");
+            return;
+        }
 
+        // Convert text to a list of characters for shuffling
+        List<Character> chars = new ArrayList<>();
+        for (char c : text.toCharArray()) {
+            chars.add(c);
+        }
+
+        Collections.shuffle(chars); // random shuffle
+        StringBuilder shuffled = new StringBuilder();
+        for (char c : chars) {
+            shuffled.append(c);
+        }
+
+        String shuffledMsg = String.format("Shuffled from User[%s]: %s", sender.getClientId(), shuffled.toString());
+        relay(null, shuffledMsg); // broadcast to all clients as server message
+    }
+    
     public static void main(String[] args) {
         System.out.println("Server Starting");
         Server server = new Server();
