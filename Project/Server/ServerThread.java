@@ -1,5 +1,5 @@
 
-package M5.Part5;
+package Project
 
 import java.net.Socket;
 import java.util.Objects;

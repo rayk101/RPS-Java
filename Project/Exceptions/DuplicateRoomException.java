@@ -1,5 +1,5 @@
 
-package M5.Part5;
+package Project
 
 public class DuplicateRoomException extends CustomIT114Exception {
     public DuplicateRoomException(String message) {

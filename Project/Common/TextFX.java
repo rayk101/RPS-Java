@@ -1,4 +1,4 @@
-package M5.Part5;
+package Project
 
 /**
  * Utility to attempt to provide colored text in the terminal.
