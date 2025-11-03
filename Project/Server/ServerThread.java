@@ -4,7 +4,7 @@ package M5.Part5;
 import java.net.Socket;
 import java.util.Objects;
 import java.util.function.Consumer;
-import M5.Part5.TextFX.Color;
+import Project.Common.TextFX.Color;
 
 /**
  * A server-side representation of a single client
