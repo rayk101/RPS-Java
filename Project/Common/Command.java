@@ -1,5 +1,5 @@
 
-package Project;
+package Project.Common;
 
 import java.util.HashMap;
 
