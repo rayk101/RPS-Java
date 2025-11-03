@@ -27,10 +27,8 @@ public class ServerThread extends BaseServerThread {
      * 
      * @param message
      */
-    @Override
     protected void info(String message) {
-        LoggerUtil.INSTANCE
-                .info(TextFX.colorize(String.format("Thread[%s]: %s", this.getClientId(), message), Color.CYAN));
+        System.out.println(TextFX.colorize(String.format("Thread[%s]: %s", this.getClientId(), message), Color.CYAN));
     }
 
     /**
@@ -54,12 +52,6 @@ public class ServerThread extends BaseServerThread {
     }
 
     // Start Send*() Methods
-    public boolean sendRooms(List<String> rooms) {
-        RoomResultPayload rrp = new RoomResultPayload();
-        rrp.setRooms(rooms);
-        return sendToClient(rrp);
-    }
-
     protected boolean sendDisconnect(long clientId) {
         Payload payload = new Payload();
         payload.setClientId(clientId);
@@ -131,15 +123,13 @@ public class ServerThread extends BaseServerThread {
     /**
      * Sends a message to the client
      * 
-     * @param clientId who it's from
      * @param message
      * @return true for successful send
      */
-    protected boolean sendMessage(long clientId, String message) {
+    protected boolean sendMessage(String message) {
         Payload payload = new Payload();
         payload.setPayloadType(PayloadType.MESSAGE);
         payload.setMessage(message);
-        payload.setClientId(clientId);
         return sendToClient(payload);
     }
 
@@ -150,7 +140,7 @@ public class ServerThread extends BaseServerThread {
         switch (incoming.getPayloadType()) {
             case CLIENT_CONNECT:
                 setClientName(((ConnectionPayload) incoming).getClientName().trim());
-
+               
                 break;
             case DISCONNECT:
                 currentRoom.handleDisconnect(this);
@@ -170,11 +160,8 @@ public class ServerThread extends BaseServerThread {
             case ROOM_LEAVE:
                 currentRoom.handleJoinRoom(this, Room.LOBBY);
                 break;
-            case ROOM_LIST:
-                currentRoom.handleListRooms(this, incoming.getMessage());
-                break;
             default:
-                LoggerUtil.INSTANCE.warning(TextFX.colorize("Unknown payload type received", Color.RED));
+                System.out.println(TextFX.colorize("Unknown payload type received", Color.RED));
                 break;
         }
     }
