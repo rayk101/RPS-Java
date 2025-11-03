@@ -12,7 +12,7 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
-import Project.Common.TextFX.Color;
+import Project.Common.TextFX;
 
 /**
  * Demoing bi-directional communication between client and server in a

@@ -3,7 +3,7 @@ package Project;
 
 import java.util.concurrent.ConcurrentHashMap;
 
-import Project.Common.TextFX.Color;
+import Project.Common.TextFX;
 
 public class Room implements AutoCloseable {
     private final String name;// unique name of the Room

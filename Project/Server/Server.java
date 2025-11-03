@@ -6,7 +6,7 @@ import java.net.ServerSocket;
 import java.net.Socket;
 import java.util.concurrent.ConcurrentHashMap;
 
-import Project.Common.TextFX.Color;
+import Project.Common.TextFX;
 
 public enum Server {
     INSTANCE; // Singleton instance

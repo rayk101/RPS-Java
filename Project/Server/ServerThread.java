@@ -4,7 +4,7 @@ package Project;
 import java.net.Socket;
 import java.util.Objects;
 import java.util.function.Consumer;
-import Project.Common.TextFX.Color;
+import Project.Common.TextFX;
 
 /**
  * A server-side representation of a single client
