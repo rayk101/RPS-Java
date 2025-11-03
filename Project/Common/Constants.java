@@ -1,5 +1,5 @@
 
-package Project
+package Project;
 
 public abstract class Constants {
     final public static String COMMAND_TRIGGER = "/";

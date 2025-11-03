@@ -1,5 +1,5 @@
 
-package Project
+package Project;
 
 public class RoomNotFoundException extends CustomIT114Exception {
 

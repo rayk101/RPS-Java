@@ -1,5 +1,5 @@
 
-package Project
+package Project;
 
 public abstract class CustomIT114Exception extends Exception {
     public CustomIT114Exception(String message) {

@@ -1,5 +1,5 @@
 
-package Project
+package Project;
 
 import java.net.Socket;
 import java.util.Objects;
