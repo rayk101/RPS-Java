@@ -2,5 +2,5 @@
 package Project.Common;
 
 public enum RoomAction {
-    CREATE, JOIN, LEAVE
+    CREATE, JOIN, LEAVE, LIST
 }

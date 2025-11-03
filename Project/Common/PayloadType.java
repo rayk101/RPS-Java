@@ -11,5 +11,6 @@ public enum PayloadType {
     ROOM_JOIN,
     ROOM_LEAVE,
     REVERSE,
-    MESSAGE // sender and message
+    MESSAGE, // sender and message,
+    ROOM_LIST, // list of rooms
 }
