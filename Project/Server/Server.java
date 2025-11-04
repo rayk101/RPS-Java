@@ -29,7 +29,7 @@ public enum Server {
     private void info(String message) {
         System.out.println(TextFX.colorize(String.format("Server: %s", message), Color.YELLOW));
     }
-
+// rk975 11/3/25
     private Server() {
         Runtime.getRuntime().addShutdownHook(new Thread(() -> {
             info("JVM is shutting down. Perform cleanup tasks.");
@@ -53,7 +53,8 @@ public enum Server {
             e.printStackTrace();
         }
     }
-
+// rk975-11/3/25
+// 
     private void start(int port) {
         this.port = port;
         // server listening
@@ -63,6 +64,7 @@ public enum Server {
             createRoom(Room.LOBBY);// create the first room (lobby)
             while (isRunning) {
                 info("Waiting for next client");
+                // rk975  - 11/3/25. Handling new incoming connections
                 Socket incomingClient = serverSocket.accept(); // blocking action, waits for a client connection
                 info("Client connected");
                 // wrap socket in a ServerThread, pass a callback to notify the Server when
@@ -121,7 +123,7 @@ public enum Server {
         rooms.put(nameCheck, room);
         info(String.format("Created new Room %s", name));
     }
-
+// rk975 - 11/3/25 relevant code snippet
     /**
      * Attempts to move a client (ServerThread) between rooms
      * 

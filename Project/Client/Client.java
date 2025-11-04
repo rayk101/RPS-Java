@@ -122,6 +122,7 @@ public enum Client {
         if (text.startsWith(Constants.COMMAND_TRIGGER)) {
             text = text.substring(1); // remove the /
             // System.out.println("Checking command: " + text);
+            // rk975- 11/3/25
             if (isConnection("/" + text)) {
                 if (myUser.getClientName() == null || myUser.getClientName().isEmpty()) {
                     System.out.println(
@@ -131,6 +132,7 @@ public enum Client {
                 // replaces multiple spaces with a single space
                 // splits on the space after connect (gives us host and port)
                 // splits on : to get host as index 0 and port as index 1
+                // rk975 - 11/3/25 relevant snippet of code
                 String[] parts = text.trim().replaceAll(" +", " ").split(" ")[1].split(":");
                 connect(parts[0].trim(), Integer.parseInt(parts[1].trim()));
                 sendClientName(myUser.getClientName());// sync follow-up data (handshake)
@@ -158,12 +160,14 @@ public enum Client {
             } else if (Command.DISCONNECT.command.equalsIgnoreCase(text)) {
                 sendDisconnect();
                 wasCommand = true;
+                // rk975 - 11/3/25
             } else if (text.startsWith(Command.REVERSE.command)) {
                 text = text.replace(Command.REVERSE.command, "").trim();
                 sendReverse(text);
                 wasCommand = true;
             } else if (text.startsWith(Command.CREATE_ROOM.command)) {
                 text = text.replace(Command.CREATE_ROOM.command, "").trim();
+                // rk975 - 11/3/25
                 if (text == null || text.length() == 0) {
                     System.out.println(TextFX.colorize("This command requires a room name as an argument", Color.RED));
                     return true;
@@ -197,6 +201,7 @@ public enum Client {
      * @param roomAction (join, leave, create)
      * @throws IOException
      */
+    // rk975 - 11/3/25
     private void sendRoomAction(String roomName, RoomAction roomAction) throws IOException {
         Payload payload = new Payload();
         payload.setMessage(roomName);
@@ -249,6 +254,7 @@ public enum Client {
      * @throws IOException
      */
     private void sendMessage(String message) throws IOException {
+        // rk975 11/3/25
         Payload payload = new Payload();
         payload.setMessage(message);
         payload.setPayloadType(PayloadType.MESSAGE);
@@ -271,6 +277,7 @@ public enum Client {
     private void sendToServer(Payload payload) throws IOException {
         if (isConnected()) {
             out.writeObject(payload);
+            // rk975 11/3/25
             out.flush(); // good practice to ensure data is written out immediately
         } else {
             System.out.println(
@@ -438,6 +445,7 @@ public enum Client {
     private void listenToInput() {
         try (Scanner si = new Scanner(System.in)) {
             System.out.println("Waiting for input"); // moved here to avoid console spam
+            // rk975-11/3/25
             while (isRunning) { // Run until isRunning is false
                 String userInput = si.nextLine();
                 if (!processClientCommand(userInput)) {
