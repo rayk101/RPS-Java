@@ -10,14 +10,16 @@ import Project.Exceptions.PlayerNotFoundException;
 
 public class GameRoom extends BaseGameRoom {
 
-    // used for general rounds (usually phase-based turns)
+    // Timer that governs full rounds (often tied to phase-based actions)
     private TimedEvent roundTimer = null;
 
-    // used for granular turn handling (usually turn-order turns)
+    // Timer for per-player turns (typically used when enforcing turn order)
     private TimedEvent turnTimer = null;
+
     private int round = 0;
-    // If true, a single loss (attack or defense) eliminates a player.
-    // If false, player must lose both battles in the round to be eliminated.
+
+    // If true, a single defeat (on attack or defense) removes a player from the game.
+    // If false, a player must lose both encounters in the round before they are out.
     private final boolean ELIMINATE_ON_SINGLE_LOSS = true;
 
     public GameRoom(String name) {
@@ -27,7 +29,7 @@ public class GameRoom extends BaseGameRoom {
     /** {@inheritDoc} */
     @Override
     protected void onClientAdded(ServerThread sp) {
-        // sync GameRoom state to new client
+        // align the newly-joined client with current GameRoom state
         syncCurrentPhase(sp);
         syncReadyStatus(sp);
         syncTurnStatus(sp);
@@ -37,7 +39,7 @@ public class GameRoom extends BaseGameRoom {
     @Override
     protected void onClientRemoved(ServerThread sp) {
         // added after Summer 2024 Demo
-        // Stops the timers so room can clean up
+        // Stop active timers when the room is empty so things can fully reset
         LoggerUtil.INSTANCE.info("Player Removed, remaining: " + clientsInRoom.size());
 
         if (clientsInRoom.isEmpty()) {
@@ -81,7 +83,7 @@ public class GameRoom extends BaseGameRoom {
     protected void onSessionStart() {
         LoggerUtil.INSTANCE.info("onSessionStart() start");
         round = 0;
-        // Begin session in choosing phase for the RPS rounds
+        // Kick off the session in the CHOOSING phase for the RPS rounds
         changePhase(Phase.CHOOSING);
         LoggerUtil.INSTANCE.info("onSessionStart() end");
         onRoundStart();
@@ -94,17 +96,17 @@ public class GameRoom extends BaseGameRoom {
         resetRoundTimer();
         resetTurnStatus();
         round++;
-        // set phase to choosing and initialize choices for active players
+        // move into the choosing phase and prep player choices for active participants
         changePhase(Phase.CHOOSING);
         clientsInRoom.values().forEach(sp -> {
-            // reset choice only for non-eliminated players
+            // clear choice only for players still in the game
             sp.user.setChoice(null);
         });
         relay(null, "Round " + round + " started. Pick with /pick <r|p|s>");
         startRoundTimer();
         LoggerUtil.INSTANCE.info("onRoundStart() end");
-        // Note: no turn lifecycle used here
-        // Users do their actions in between roundStart and roundEnd
+        // Note: per-turn lifecycle hooks are not used here
+        // Players perform their actions within the window between roundStart and roundEnd
     }
 
     /** {@inheritDoc} */
@@ -117,33 +119,34 @@ public class GameRoom extends BaseGameRoom {
         LoggerUtil.INSTANCE.info("onTurnStart() end");
     }
 
-    // Note: logic between Turn Start and Turn End is typically handled via timers
-    // and user interaction
+    // Note: The actual gameplay logic between Turn Start and Turn End
+    // is usually driven by incoming player actions and the timers above.
     /** {@inheritDoc} */
     @Override
     protected void onTurnEnd() {
         LoggerUtil.INSTANCE.info("onTurnEnd() start");
-        resetTurnTimer(); // reset timer if turn ended without the time expiring
+        // clear the turn timer if the turn concluded before timeout
+        resetTurnTimer();
         LoggerUtil.INSTANCE.info("onTurnEnd() end");
     }
 
-    // Note: logic between Round Start and Round End is typically handled via timers
-    // and user interaction
+    // Note: Round-to-round logic is similarly handled via timers and player input.
     /** {@inheritDoc} */
     @Override
     protected void onRoundEnd() {
         LoggerUtil.INSTANCE.info("onRoundEnd() start");
-        resetRoundTimer(); // reset timer if round ended without the time expiring
+        // reset the round timer if the round ended normally
+        resetRoundTimer();
         LoggerUtil.INSTANCE.info("onRoundEnd() end");
         relay(null, "Round ended — processing results...");
-        // Process end of round: eliminate non-pickers, resolve battles, award points
+        // Handle end-of-round logic: auto-eliminate non-pickers, resolve battles, assign points
         processRoundResults();
-        // check end conditions
+        // Evaluate whether the game should end or continue
         long active = clientsInRoom.values().stream().filter(sp -> !sp.user.isEliminated()).count();
         if (active <= 1) {
             onSessionEnd();
         } else {
-            // start next round
+            // proceed to the next round
             onRoundStart();
         }
     }
@@ -154,7 +157,7 @@ public class GameRoom extends BaseGameRoom {
         LoggerUtil.INSTANCE.info("onSessionEnd() start");
         resetReadyStatus();
         resetTurnStatus();
-        // announce winner(s)
+        // determine and announce winner(s)
         java.util.List<ServerThread> alive = clientsInRoom.values().stream()
                 .filter(sp -> !sp.user.isEliminated()).toList();
         if (alive.size() == 1) {
@@ -163,10 +166,10 @@ public class GameRoom extends BaseGameRoom {
             relay(null, "No players remaining — tie");
         }
 
-        // send final scoreboard sorted by points
+        // push out final scores sorted by total points
         sendFinalScoreboard();
 
-        // reset player data for next session (do not disconnect)
+        // clear per-session player state in preparation for a fresh game (clients remain connected)
         clientsInRoom.values().forEach(sp -> {
             sp.user.setPoints(0);
             sp.user.setEliminated(false);
@@ -175,7 +178,7 @@ public class GameRoom extends BaseGameRoom {
             sp.setReady(false);
         });
 
-        // sync points reset to clients
+        // sync point resets to all clients
         clientsInRoom.values().forEach(sp -> {
             clientsInRoom.values().forEach(target -> target.sendPointsUpdate(sp.getClientId(), sp.user.getPoints()));
         });
@@ -234,7 +237,7 @@ public class GameRoom extends BaseGameRoom {
                 .filter(sp -> sp.isReady())
                 .toList().size();
         int numTookTurn = clientsInRoom.values().stream()
-                // ensure to verify the isReady part since it's against the original list
+                // Must still be marked ready, based on the original group
                 .filter(sp -> sp.isReady() && sp.didTakeTurn())
                 .toList().size();
         if (numReady == numTookTurn) {
@@ -251,14 +254,14 @@ public class GameRoom extends BaseGameRoom {
     // receive data from ServerThread (GameRoom specific)
 
     /**
-     * Handles the turn action from the client.
-     * 
-     * @param currentUser
-     * @param exampleText (arbitrary text from the client, can be used for
-     *                    additional actions or information)
+     * Processes a turn request from a client.
+     *
+     * @param currentUser the ServerThread for the acting client
+     * @param exampleText an arbitrary string from the client that could be used
+     *                    for additional per-turn data
      */
     protected void handleTurnAction(ServerThread currentUser, String exampleText) {
-        // check if the client is in the room
+        // validate that the caller is in the room and that conditions are correct
         try {
             checkPlayerInRoom(currentUser);
             checkCurrentPhase(currentUser, Phase.IN_PROGRESS);
@@ -269,11 +272,11 @@ public class GameRoom extends BaseGameRoom {
             }
             currentUser.setTookTurn(true);
             sendTurnStatus(currentUser, currentUser.didTakeTurn());
-            // TODO handle example text possibly or other turn related intention from client
-            // finished processing the turn
+            // TODO: incorporate exampleText for richer turn handling logic if desired
+            // completion of the current user's turn
             checkAllTookTurn();
         } catch (NotReadyException e) {
-            // The check method already informs the currentUser
+            // NotReady check already sends a message to currentUser
             LoggerUtil.INSTANCE.severe("handleTurnAction exception", e);
         } catch (PlayerNotFoundException e) {
             currentUser.sendMessage(Constants.DEFAULT_CLIENT_ID, "You must be in a GameRoom to do the ready check");
@@ -290,8 +293,9 @@ public class GameRoom extends BaseGameRoom {
     // end receive data from ServerThread (GameRoom specific)
 
     /**
-     * Override generic message handling so raw single-letter picks (r/p/s)
-     * submitted during CHOOSING are treated as picks and not broadcast.
+     * Overrides the default message handler so that plain single-letter
+     * choices (r/p/s) during CHOOSING are interpreted as game picks instead
+     * of being broadcast as chat text.
      */
     @Override
     protected synchronized void handleMessage(ServerThread sender, String text) {
@@ -299,13 +303,13 @@ public class GameRoom extends BaseGameRoom {
             if (currentPhase == Phase.CHOOSING && text != null) {
                 String t = text.trim();
                 String tl = t.toLowerCase();
-                // single-letter quick pick (e.g., "r")
+                // direct one-character selection like "r"
                 if (tl.length() == 1 && (tl.equals("r") || tl.equals("p") || tl.equals("s"))) {
                     handlePick(sender, tl);
                     return;
                 }
-                // command form possibly sent as a MESSAGE (some clients may not parse commands correctly)
-                // accept "/pick p", "pick p", or similar variations
+                // Some clients may not interpret slash commands correctly and send them as messages.
+                // Accept patterns like "/pick p", "pick p", etc.
                 String withoutSlash = tl.startsWith("/") ? tl.substring(1).trim() : tl;
                 if (withoutSlash.startsWith("pick")) {
                     String[] parts = withoutSlash.split(" +");
@@ -321,15 +325,15 @@ public class GameRoom extends BaseGameRoom {
         } catch (Exception e) {
             LoggerUtil.INSTANCE.severe("handleMessage override error", e);
         }
-        // fallback to base behavior
+        // fall back to the parent implementation for non-pick cases
         super.handleMessage(sender, text);
     }
 
     /**
-     * Handles a player's pick (r/p/s)
+     * Handles a player's rock/paper/scissors choice.
      *
-     * @param currentUser
-     * @param choiceStr  expected "r","p","s"
+     * @param currentUser the ServerThread for the client choosing
+     * @param choiceStr   expecting "r", "p", or "s"
      */
     protected void handlePick(ServerThread currentUser, String choiceStr) {
         try {
@@ -351,8 +355,8 @@ public class GameRoom extends BaseGameRoom {
             }
             currentUser.user.setChoice(c);
             relay(currentUser, String.format("%s picked their choice", currentUser.getDisplayName()));
-                // check if all active (non-eliminated) players have chosen
-                boolean allChosen = clientsInRoom.values().stream()
+            // check whether all still-active players have submitted a choice
+            boolean allChosen = clientsInRoom.values().stream()
                     .filter(sp -> !sp.user.isEliminated())
                     .allMatch(sp -> sp.user.getChoice() != null);
             if (allChosen) {
@@ -364,7 +368,7 @@ public class GameRoom extends BaseGameRoom {
     }
 
     private boolean beats(String a, String b) {
-        // returns true if a beats b in RPS
+        // returns true if the first choice wins against the second in RPS
         if (a == null || b == null)
             return false;
         if (a.equals("r") && b.equals("s"))
@@ -377,7 +381,7 @@ public class GameRoom extends BaseGameRoom {
     }
 
     private void processRoundResults() {
-        // eliminate non-pickers
+        // first remove any active players who never submitted a choice
         clientsInRoom.values().forEach(sp -> {
             if (!sp.user.isEliminated() && sp.user.getChoice() == null) {
                 sp.user.setEliminated(true);
@@ -385,15 +389,15 @@ public class GameRoom extends BaseGameRoom {
             }
         });
 
-        // gather active players (non-eliminated)
+        // assemble a list of still-active (non-eliminated) participants
         var active = clientsInRoom.values().stream().filter(sp -> !sp.user.isEliminated()).toList();
         int n = active.size();
         if (n <= 1) {
-            // nothing to resolve
+            // with 0 or 1 player remaining, there is nothing to resolve
             return;
         }
 
-        // compute round-robin battles and accumulate point awards and loss counts
+        // iterate over players in a round-robin style and track both points and losses
         java.util.Map<ServerThread, Integer> addPoints = new java.util.HashMap<>();
         java.util.Map<ServerThread, Integer> lossCount = new java.util.HashMap<>();
 
@@ -403,7 +407,7 @@ public class GameRoom extends BaseGameRoom {
             String aChoice = attacker.user.getChoice();
             String dChoice = defender.user.getChoice();
             if (aChoice == null || dChoice == null) {
-                continue; // skip incomplete
+                continue; // skip incomplete pairs
             }
 
             String resultMsg;
@@ -421,14 +425,14 @@ public class GameRoom extends BaseGameRoom {
                 resultMsg = String.format("Battle: %s (%s) vs %s (%s) -> tie", attacker.getDisplayName(), aChoice,
                         defender.getDisplayName(), dChoice);
             }
-            // relay the matchup, choices, and result (visible at round resolution)
+            // announce the matchup and outcome after the round finishes
             relay(null, resultMsg);
         }
 
-        // apply points and notify clients
+        // award accumulated points and push updates to all clients
         addPoints.forEach((sp, pts) -> {
             sp.user.setPoints(sp.user.getPoints() + pts);
-            // sync to everyone
+            // broadcast updated scores
             clientsInRoom.values().forEach(sendTo -> {
                 boolean ok = sendTo.sendPointsUpdate(sp.getClientId(), sp.user.getPoints());
                 if (!ok) {
@@ -437,7 +441,7 @@ public class GameRoom extends BaseGameRoom {
             });
         });
 
-        // determine eliminations based on loss counts and config
+        // figure out who should be eliminated based on how many losses they took
         java.util.Set<ServerThread> toEliminate = new java.util.HashSet<>();
         for (ServerThread sp : active) {
             int losses = lossCount.getOrDefault(sp, 0);
@@ -447,7 +451,7 @@ public class GameRoom extends BaseGameRoom {
             }
         }
 
-        // apply eliminations
+        // mark players as eliminated and let everyone know
         toEliminate.forEach(sp -> {
             sp.user.setEliminated(true);
             relay(null, String.format("%s has been eliminated", sp.getDisplayName()));
@@ -456,7 +460,7 @@ public class GameRoom extends BaseGameRoom {
     }
 
     /**
-     * Builds and sends a final scoreboard message to all clients sorted by points
+     * Assembles and broadcasts a final scoreboard, ordered by total points.
      */
     private void sendFinalScoreboard() {
         java.util.List<ServerThread> sorted = clientsInRoom.values().stream()
@@ -468,7 +472,7 @@ public class GameRoom extends BaseGameRoom {
     }
 
     /**
-     * Handle a scoreboard request from a client (send current scoreboard)
+     * Handles a live scoreboard request from a client by sending the current standings.
      */
     protected void handleScoreboard(ServerThread requester) {
         sendFinalScoreboard();
