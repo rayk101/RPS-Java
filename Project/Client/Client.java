@@ -247,6 +247,10 @@ public enum Client {
         sendToServer(rp);
     }
 
+    // rk975 - 11/26/25
+    // Sends the player's choice of "r", "p", or "s" to the server.
+    //  Validates input before sending.
+    // Throws IOException if sending fails.
     private void sendPick(String text) throws IOException {
         String c = text.toLowerCase();
         if (!(c.equals("r") || c.equals("p") || c.equals("s"))) {
