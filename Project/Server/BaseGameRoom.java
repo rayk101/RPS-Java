@@ -9,17 +9,19 @@ import Project.Exceptions.PhaseMismatchException;
 import Project.Exceptions.PlayerNotFoundException;
 
 /**
- * No edits should be needed in this file, this prepares the core logic for the
- * GameRoom
+ * Core base class that wires up the main game flow for a GameRoom.
+ * Concrete game rooms extend this and fill in the abstract lifecycle hooks.
  */
 public abstract class BaseGameRoom extends Room {
 
     private TimedEvent readyTimer = null;
 
+    // Minimum number of players that must be ready for a session to start
     protected final int MINIMUM_REQUIRED_TO_START = 2;
 
     protected Phase currentPhase = Phase.READY;
 
+    // If true, /ready can be used to toggle; if false, it only sets to ready
     protected boolean allowToggleReady = false;
 
     public BaseGameRoom(String name) {
@@ -27,70 +29,69 @@ public abstract class BaseGameRoom extends Room {
     }
 
     /**
-     * Project session initialization step (triggered from readyCheck)
+     * Called once at the beginning of the game session (kicked off via readyCheck).
      */
     protected abstract void onSessionStart();
 
     /**
-     * Round initialization step (in some cases can be used in place of turns if
-     * simple enough)
+     * Invoked when a new round begins.
+     * In simpler games this may be used instead of per-turn logic.
      */
     protected abstract void onRoundStart();
 
     /**
-     * Turn initialization step (if there are distinct turns)
+     * Invoked when an individual turn starts (for games with explicit turns).
      */
     protected abstract void onTurnStart();
 
     /**
-     * Turn cleanup step
+     * Invoked after a turn completes for cleanup or state transitions.
      */
     protected abstract void onTurnEnd();
 
     /**
-     * Round cleanup step
+     * Invoked after a round is finished (cleanup, scoring, etc.).
      */
     protected abstract void onRoundEnd();
 
     /**
-     * Session cleanup step
+     * Called when the overall session is ending (e.g., game over or aborted).
      */
     protected abstract void onSessionEnd();
 
     /**
-     * Triggered when a client is successfully added to the base-Room map and the
-     * GameRoom map
-     * 
-     * @param client the client who joined
+     * Fires when a client is successfully added to both the base Room map
+     * and this GameRoom's client tracking.
+     *
+     * @param client the newly joined client
      */
     protected abstract void onClientAdded(ServerThread client);
 
     /**
-     * Triggered when a client is removed from the base-Room map and the GameRoom
-     * map
-     * 
-     * @param client the client who was removed (can be null if removal already
-     *               occurred)
+     * Fires when a client is removed from both the base Room map
+     * and this GameRoom's client tracking.
+     *
+     * @param client the departing client (may be null if already removed)
      */
     protected abstract void onClientRemoved(ServerThread client);
 
     @Override
     protected synchronized void addClient(ServerThread client) {
-        if (!isRunning()) { // block action if Room isn't running
+        if (!isRunning()) { // ignore join attempts when the Room is inactive
             return;
         }
-        // do the base Room class logic
+        // invoke the shared Room-level add logic
         super.addClient(client);
         onClientAdded(client);
     }
 
     @Override
     protected synchronized void removeClient(ServerThread client) {
-        if (!isRunning()) { // block action if Room isn't running
+        if (!isRunning()) { // ignore removals if the Room isn't active
             return;
         }
         LoggerUtil.INSTANCE.info("Players in room: " + clientsInRoom.size());
-        // do the base-class logic
+        // perform the base Room removal logic
         super.removeClient(client);
         onClientRemoved(client);
     }
@@ -103,7 +104,7 @@ public abstract class BaseGameRoom extends Room {
     }
 
     /**
-     * Cancels any in progress readyTimer
+     * Stops any active ready timer and clears its reference.
      */
     protected void resetReadyTimer() {
         if (readyTimer != null) {
@@ -113,9 +114,9 @@ public abstract class BaseGameRoom extends Room {
     }
 
     /**
-     * Starts the ready timer
-     * 
-     * @param resetOnTry when true, will cancel any active readyTimer
+     * Starts a new "ready" countdown timer if one isn't already active.
+     *
+     * @param resetOnTry if true, cancels a currently running ready timer first
      */
     protected void startReadyTimer(boolean resetOnTry) {
         if (resetOnTry) {
@@ -123,7 +124,7 @@ public abstract class BaseGameRoom extends Room {
         }
         if (readyTimer == null) {
             readyTimer = new TimedEvent(30, () -> {
-                // callback to trigger when ready expires
+                // callback executed when the ready timer expires
                 checkReadyStatus();
             });
             readyTimer.setTickCallback((time) -> System.out.println("Ready Timer: " + time));
@@ -131,8 +132,8 @@ public abstract class BaseGameRoom extends Room {
     }
 
     /**
-     * Rules to begin a session: At least MINIMUM_REQUIRED_TO_START must be joined
-     * and ready
+     * Determines whether enough players are ready to begin the session.
+     * If the requirement is met, the session begins; otherwise, the session ends.
      */
     private void checkReadyStatus() {
         long numReady = clientsInRoom.values().stream().filter(p -> p.isReady()).count();
@@ -144,16 +145,19 @@ public abstract class BaseGameRoom extends Room {
         }
     }
 
+    /**
+     * Clears all ready flags for players and notifies clients to reset their local state.
+     */
     protected void resetReadyStatus() {
         clientsInRoom.values().forEach(p -> p.setReady(false));
         sendResetReadyTrigger();
     }
 
     /**
-     * Attempts to change the current phase if the passed phase differs.
-     * If it changes, sends the update to all Clients
-     * 
-     * @param phase
+     * Attempts to move the game into a new phase if it differs from the current one.
+     * When changed, the updated phase is broadcast to all connected clients.
+     *
+     * @param phase the new phase being requested
      */
     protected void changePhase(Phase phase) {
         if (currentPhase != phase) {
@@ -165,16 +169,16 @@ public abstract class BaseGameRoom extends Room {
     // send/sync data to ServerThread(s)
 
     /**
-     * Syncs the current phase to a single client
-     * 
-     * @param sp
+     * Sends the current phase value down to a single client.
+     *
+     * @param sp the ServerThread to sync with
      */
     protected void syncCurrentPhase(ServerThread sp) {
         sp.sendCurrentPhase(currentPhase);
     }
 
     /**
-     * Sends the current phase to all clients
+     * Broadcasts the current phase to all active clients in this room.
      */
     protected void sendCurrentPhase() {
         clientsInRoom.values().removeIf(spInRoom -> {
@@ -187,8 +191,7 @@ public abstract class BaseGameRoom extends Room {
     }
 
     /**
-     * A shorthand way of telling all clients to reset their local list's ready
-     * status
+     * Convenience helper to tell all clients to reset their ready status locally.
      */
     protected void sendResetReadyTrigger() {
         clientsInRoom.values().removeIf(spInRoom -> {
@@ -201,9 +204,9 @@ public abstract class BaseGameRoom extends Room {
     }
 
     /**
-     * Sends the ready status of each ServerThread to one client
-     * 
-     * @param incomingSP
+     * Sends the ready state for each ServerThread in this room to a single client.
+     *
+     * @param incomingSP the client that needs the current ready snapshot
      */
     protected void syncReadyStatus(ServerThread incomingSP) {
         clientsInRoom.values().removeIf(spInRoom -> {
@@ -211,15 +214,16 @@ public abstract class BaseGameRoom extends Room {
             if (failedToSend) {
                 removeClient(spInRoom);
             }
+            // only mark for removal if sending failed AND it's the same client
             return failedToSend && spInRoom.getClientId() == incomingSP.getClientId();
         });
     }
 
     /**
-     * Sends the ready status of one ServerThread to all clients
-     * 
-     * @param incomingSP
-     * @param isReady
+     * Notifies all clients about a single player's ready status change.
+     *
+     * @param incomingSP the player whose ready status changed
+     * @param isReady    the new ready value (kept for clarity, even though we read from incomingSP)
      */
     protected void sendReadyStatus(ServerThread incomingSP, boolean isReady) {
         clientsInRoom.values().removeIf(spInRoom -> {
@@ -232,25 +236,26 @@ public abstract class BaseGameRoom extends Room {
     }
     // end send data to ServerThread(s)
 
-    // receive data from ServerThread (GameRoom specific)
+    // receive data from ServerThread (GameRoom-specific entry points)
     protected void handleReady(ServerThread sender) {
         try {
-            // early exit checks
+            // early validation checks
             checkPlayerInRoom(sender);
             checkCurrentPhase(sender, Phase.READY);
 
             ServerThread sp = null;
-            // option 1: simply just mark ready
+            // option 1: simply set ready to true
             if (!allowToggleReady) {
                 sp = clientsInRoom.get(sender.getClientId());
                 sp.setReady(true);
             }
-            // option 2: toggle
+            // option 2: flip the current ready state
             else {
                 sp = clientsInRoom.get(sender.getClientId());
                 sp.setReady(!sp.isReady());
             }
-            startReadyTimer(false); // <-- triggers the next step when it expires
+            // kicks off or reuses a timer that will trigger the next stage when it expires
+            startReadyTimer(false);
 
             sendReadyStatus(sp, sp.isReady());
         } catch (Exception e) {
@@ -258,16 +263,17 @@ public abstract class BaseGameRoom extends Room {
         }
 
     }
-    // end receive data from ServerThread (GameRoom specific)
+    // end receive data from ServerThread (GameRoom-specific entry points)
 
     // Logic Checks
 
     /**
-     * Early exit (via exception throwing) if it's not the proper phase
-     * 
-     * @param client
-     * @param check
-     * @throws Exception
+     * Guard clause to ensure the requested action matches the current phase.
+     * Throws a PhaseMismatchException and informs the client if there's a mismatch.
+     *
+     * @param client the requesting client
+     * @param check  required phase for this action
+     * @throws Exception if the phase is not correct
      */
     protected void checkCurrentPhase(ServerThread client, Phase check) throws Exception {
         if (currentPhase != check) {
@@ -277,6 +283,12 @@ public abstract class BaseGameRoom extends Room {
         }
     }
 
+    /**
+     * Ensures the client is marked as ready before proceeding.
+     *
+     * @param client the client to validate
+     * @throws NotReadyException if the client is not ready
+     */
     protected void checkIsReady(ServerThread client) throws NotReadyException {
         if (!client.isReady()) {
             client.sendMessage(Constants.DEFAULT_CLIENT_ID, "You must be marked 'ready' to do this action");
@@ -285,10 +297,11 @@ public abstract class BaseGameRoom extends Room {
     }
 
     /**
-     * Early exit (via exception throwing) if the user isn't in the room
-     * 
-     * @param client
-     * @throws Exception
+     * Validates that the client is actually present in this room.
+     * Throws PlayerNotFoundException if not found.
+     *
+     * @param client the client to look up
+     * @throws Exception if the client is missing from the room
      */
     protected void checkPlayerInRoom(ServerThread client) throws Exception {
         if (!clientsInRoom.containsKey(client.getClientId())) {
