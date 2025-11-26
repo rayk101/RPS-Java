@@ -268,6 +268,10 @@ public class ServerThread extends BaseServerThread {
                     sendMessage(Constants.DEFAULT_CLIENT_ID, "Unable to provide scoreboard");
                 }
                 break;
+            // rk975 - 11/26/25
+            // Handles a player's pick choice during the game.
+            // Expects a PickPayload containing the choice ("r", "p", or "s").
+            // Delegates the processing to the GameRoom's handlePick() method.
 
             case PICK:
                 try {

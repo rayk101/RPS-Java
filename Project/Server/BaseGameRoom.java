@@ -32,12 +32,18 @@ public abstract class BaseGameRoom extends Room {
      * Called once at the beginning of the game session (kicked off via readyCheck).
      */
     protected abstract void onSessionStart();
+    // rk975 - 11/26/25
+    // Initializes game session state, resets round counter,
+    // and transitions to the CHOOSING phase to start the first round.
 
     /**
      * Invoked when a new round begins.
      * In simpler games this may be used instead of per-turn logic.
      */
     protected abstract void onRoundStart();
+    // rk975 - 11/26/25
+    // Advances the round counter, resets per-round state,
+    // and transitions to the CHOOSING phase for the new round.
 
     /**
      * Invoked when an individual turn starts (for games with explicit turns).
@@ -53,12 +59,18 @@ public abstract class BaseGameRoom extends Room {
      * Invoked after a round is finished (cleanup, scoring, etc.).
      */
     protected abstract void onRoundEnd();
+    // rk975 - 11/26/25
+    // Advances the round counter, resets per-round state,
+    //  and transitions to the CHOOSING phase for the new round.
 
     /**
      * Called when the overall session is ending (e.g., game over or aborted).
      */
     protected abstract void onSessionEnd();
-
+    // rk975 - 11/26/25
+    // Stops active timers when the room is empty so things can fully reset
+    // determine and announce winner(s)
+    
     /**
      * Fires when a client is successfully added to both the base Room map
      * and this GameRoom's client tracking.
@@ -66,7 +78,9 @@ public abstract class BaseGameRoom extends Room {
      * @param client the newly joined client
      */
     protected abstract void onClientAdded(ServerThread client);
-
+// rk975 - 11/26/25
+// Fires when a client is successfully added to both the base Room map
+// and this GameRoom's client tracking.
     /**
      * Fires when a client is removed from both the base Room map
      * and this GameRoom's client tracking.
@@ -74,6 +88,9 @@ public abstract class BaseGameRoom extends Room {
      * @param client the departing client (may be null if already removed)
      */
     protected abstract void onClientRemoved(ServerThread client);
+// rk975 - 11/26/25
+// Fires when a client is removed from both the base Room map
+// and this GameRoom's client tracking.
 
     @Override
     protected synchronized void addClient(ServerThread client) {

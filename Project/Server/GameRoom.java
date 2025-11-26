@@ -27,6 +27,10 @@ public class GameRoom extends BaseGameRoom {
     }
 
     /** {@inheritDoc} */
+    // rk975 - 11/26/25
+    // Fires when a client is successfully added to both the base Room map
+    // and this GameRoom's client tracking.
+    // Aligns the newly-joined client with the current GameRoom state
     @Override
     protected void onClientAdded(ServerThread sp) {
         // align the newly-joined client with current GameRoom state
@@ -36,6 +40,10 @@ public class GameRoom extends BaseGameRoom {
     }
 
     /** {@inheritDoc} */
+    // rk975 - 11/26/25
+    // Fires when a client is removed from both the base Room map
+    // and this GameRoom's client tracking.
+    // Stops active timers when the room is empty so things can fully reset
     @Override
     protected void onClientRemoved(ServerThread sp) {
         // added after Summer 2024 Demo
@@ -79,6 +87,9 @@ public class GameRoom extends BaseGameRoom {
     // lifecycle methods
 
     /** {@inheritDoc} */
+    // rk975 - 11/26/25
+    // Initializes game session state, resets round counter,
+    // and transitions to the CHOOSING phase to start the first round.
     @Override
     protected void onSessionStart() {
         LoggerUtil.INSTANCE.info("onSessionStart() start");
@@ -90,6 +101,10 @@ public class GameRoom extends BaseGameRoom {
     }
 
     /** {@inheritDoc} */
+    // rk975 - 11/26/25
+    // Advances the round counter, resets per-round state,
+    // and transitions to the CHOOSING phase for the new round.
+    // Starts the round timer to limit the duration of the round.
     @Override
     protected void onRoundStart() {
         LoggerUtil.INSTANCE.info("onRoundStart() start");
@@ -132,6 +147,10 @@ public class GameRoom extends BaseGameRoom {
 
     // Note: Round-to-round logic is similarly handled via timers and player input.
     /** {@inheritDoc} */
+    // rk975 - 11/26/25
+    // Advances the round counter, resets per-round state,
+    //  and transitions to the CHOOSING phase for the new round.
+    // Starts the round timer to limit the duration of the round.
     @Override
     protected void onRoundEnd() {
         LoggerUtil.INSTANCE.info("onRoundEnd() start");
@@ -152,6 +171,11 @@ public class GameRoom extends BaseGameRoom {
     }
 
     /** {@inheritDoc} */
+    // rk975 - 11/26/25
+    // Stops active timers when the room is empty so things can fully reset
+    // determine and announce winner(s)
+    // push out final scores sorted by total points
+    // clear per-session player state in preparation for a fresh game (clients
     @Override
     protected void onSessionEnd() {
         LoggerUtil.INSTANCE.info("onSessionEnd() start");
@@ -335,6 +359,10 @@ public class GameRoom extends BaseGameRoom {
      * @param currentUser the ServerThread for the client choosing
      * @param choiceStr   expecting "r", "p", or "s"
      */
+    // rk975 - 11/26/25
+    // Handles a player's pick choice during the game.
+    // Expects a PickPayload containing the choice ("r", "p", or "s").
+    // Delegates the processing to the GameRoom's handlePick() method.
     protected void handlePick(ServerThread currentUser, String choiceStr) {
         try {
             checkPlayerInRoom(currentUser);
