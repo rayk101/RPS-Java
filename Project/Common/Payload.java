@@ -55,3 +55,5 @@ public class Payload implements Serializable {
         return String.format("Payload[%s] Client Id [%s] Message: [%s]", getPayloadType(), getClientId(), getMessage());
     }
 }
+// rk975 - 11/26/25
+// Overrides toString() to provide a readable text version of the object.

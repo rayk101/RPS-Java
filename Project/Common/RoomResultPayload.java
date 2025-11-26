@@ -23,3 +23,7 @@ public class RoomResultPayload extends Payload {
         return super.toString() + "Rooms [" + String.join(",", rooms) + "]";
     }
 }
+// rk975 - 11/26/25
+// Overrides toString() to add room list information to the base class's string output.
+// Calls super.toString() to include base class details.
+// Appends the list of rooms in a formatted Rooms [room1,room2,...] section.

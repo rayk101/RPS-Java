@@ -26,3 +26,7 @@ public class ConnectionPayload extends Payload {
     }
 
 }
+// rk975/11/26/25
+//Overrides toString() to add extra information to the parent class's string output.
+//Calls super.toString() to include base class details.
+//Appends the client’s name in a formatted ClientName: [name] section.

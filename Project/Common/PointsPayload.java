@@ -17,3 +17,7 @@ public class PointsPayload extends Payload {
                 getPayloadType());
     }
 }
+// rk975 - 11/26/25
+// Overrides toString() to provide a readable text version of the object.
+// Uses String.format() to include clientId, points, and the payload type.
+//Helps with debugging and logging by showing object data in one line.
