@@ -1,9 +1,13 @@
-
 package Project.Common;
 
 public class User {
     private long clientId = Constants.DEFAULT_CLIENT_ID;
     private String clientName;
+    private boolean isReady = false;
+    private boolean tookTurn = false;
+    private int points = 0;
+    private boolean eliminated = false;
+    private String choice = null; // "r","p","s" or null
 
     /**
      * @return the clientId
@@ -37,8 +41,59 @@ public class User {
         return String.format("%s#%s", this.clientName, this.clientId);
     }
 
+    public boolean isReady() {
+        return isReady;
+    }
+
+    public void setReady(boolean isReady) {
+        this.isReady = isReady;
+    }
+
     public void reset() {
         this.clientId = Constants.DEFAULT_CLIENT_ID;
         this.clientName = null;
+        this.isReady = false;
+        this.tookTurn = false;
+        this.points = 0;
+        this.eliminated = false;
+        this.choice = null;
+    }
+
+    public int getPoints() {
+        return points;
+    }
+
+    public void setPoints(int points) {
+        this.points = points;
+    }
+
+    public boolean isEliminated() {
+        return eliminated;
+    }
+
+    public void setEliminated(boolean eliminated) {
+        this.eliminated = eliminated;
+    }
+
+    public String getChoice() {
+        return choice;
+    }
+
+    public void setChoice(String choice) {
+        this.choice = choice;
+    }
+
+    /**
+     * @return the tookTurn
+     */
+    public boolean didTakeTurn() {
+        return tookTurn;
+    }
+
+    /**
+     * @param tookTurn the tookTurn to set
+     */
+    public void setTookTurn(boolean tookTurn) {
+        this.tookTurn = tookTurn;
     }
 }

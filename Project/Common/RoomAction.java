@@ -1,4 +1,3 @@
-
 package Project.Common;
 
 public enum RoomAction {
