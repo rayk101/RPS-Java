@@ -8,30 +8,30 @@ import java.io.ObjectOutputStream;
 import java.net.Socket;
 
 /**
- * Base class the handles the underlying connection between Client and
- * Server-side
+ * Abstract base class that manages the low-level connection between a Client
+ * and the server side.
  */
 public abstract class BaseServerThread extends Thread {
 
-    protected boolean isRunning = false; // control variable to stop this thread
-    protected ObjectOutputStream out; // exposed here for send()
-    protected Socket client; // communication directly to "my" client
+    protected boolean isRunning = false; // control flag used to stop this thread
+    protected ObjectOutputStream out; // exposed here so sendToClient() can use it
+    protected Socket client; // socket tied directly to this specific client
     protected User user = new User();
     protected Room currentRoom;
 
     /**
-     * Returns the current Room associated with this ServerThread
-     * 
-     * @return
+     * Returns the Room currently associated with this ServerThread.
+     *
+     * @return the active Room reference
      */
     protected Room getCurrentRoom() {
         return this.currentRoom;
     }
 
     /**
-     * Allows the setting of a non-null Room reference to this ServerThread
-     * 
-     * @param room
+     * Assigns a non-null Room reference to this ServerThread.
+     *
+     * @param room target Room to bind this thread to
      */
     protected void setCurrentRoom(Room room) {
         if (room == null) {
@@ -45,9 +45,9 @@ public abstract class BaseServerThread extends Thread {
     }
 
     /**
-     * Returns the status of this ServerThread
-     * 
-     * @return
+     * Indicates whether this ServerThread is currently active.
+     *
+     * @return true if the thread is running, false otherwise
      */
     public boolean isRunning() {
         return isRunning;
@@ -58,15 +58,16 @@ public abstract class BaseServerThread extends Thread {
     }
 
     public long getClientId() {
-        // Note: We return clientId instead of threadId as we'll change this identifier
-        // in the future
+        // Note: We return clientId instead of the thread id since this identifier
+        // may later change independently of the thread.
         return this.user.getClientId();
     }
 
     /**
-     * Sets the client name and triggers onInitialized()
-     * 
-     * @param clientName
+     * Sets the client's name and then invokes onInitialized() once
+     * basic identity information is available.
+     *
+     * @param clientName the name to associate with this client
      */
     protected void setClientName(String clientName) {
         this.user.setClientName(clientName);
@@ -82,30 +83,29 @@ public abstract class BaseServerThread extends Thread {
     }
 
     /**
-     * A wrapper method so we don't need to keep typing out the long/complex sysout
-     * line inside
-     * 
-     * @param message
+     * Convenience method to abstract away the logging/printing implementation.
+     *
+     * @param message text to log/display
      */
     protected abstract void info(String message);
 
     /**
-     * Triggered when object is fully initialized
+     * Called when this object has finished its initialization sequence.
      */
     protected abstract void onInitialized();
 
     /**
-     * Receives a Payload and passes data to proper handler
-     * 
-     * @param payload
+     * Receives an incoming Payload and routes it to the correct handler method.
+     *
+     * @param payload data object sent from the client
      */
     protected abstract void processPayload(Payload payload);
 
     /**
-     * Sends the payload over the socket
-     * 
-     * @param payload
-     * @return true if no errors were encountered
+     * Serializes and sends a Payload over the socket to the client.
+     *
+     * @param payload object to send
+     * @return true if the send operation completed successfully
      */
     protected boolean sendToClient(Payload payload) {
         if (!isRunning) {
@@ -118,7 +118,7 @@ public abstract class BaseServerThread extends Thread {
             return true;
         } catch (IOException e) {
             info("Error sending message to client (most likely disconnected)");
-            // comment this out to inspect the stack trace
+            // uncomment to inspect full stack trace
             // e.printStackTrace();
             cleanup();
             return false;
@@ -126,17 +126,18 @@ public abstract class BaseServerThread extends Thread {
     }
 
     /**
-     * Terminates the server-side of the connection
+     * Shuts down the server side of this connection.
+     * Safe to call multiple times; subsequent calls are ignored.
      */
     protected void disconnect() {
         if (!isRunning) {
-            // prevent multiple triggers if this gets called consecutively
+            // avoid executing disconnect logic more than once
             return;
         }
         info("Thread being disconnected by server");
         isRunning = false;
-        this.interrupt(); // breaks out of blocking read in the run() method
-        cleanup(); // good practice to ensure data is written out immediately
+        this.interrupt(); // breaks out of the blocking read loop in run()
+        cleanup(); // finalize connections and release resources
     }
 
     @Override
@@ -157,20 +158,19 @@ public abstract class BaseServerThread extends Thread {
             }, 3000);
             Payload fromClient;
             /**
-             * isRunning is a flag to let us manage the loop exit condition
-             * fromClient (in.readObject()) is a blocking method that waits until data is
-             * received
-             * - null would likely mean a disconnect so we use a "set and check" logic to
-             * alternatively exit the loop
+             * isRunning acts as a flag controlling when to exit the main loop.
+             * fromClient (in.readObject()) is a blocking call that waits for incoming data.
+             * - null generally indicates some sort of disconnect, so we use "set then check"
+             *   logic to decide when to break out of the loop.
              */
             while (isRunning) {
                 try {
-                    fromClient = (Payload) in.readObject(); // blocking method
+                    fromClient = (Payload) in.readObject(); // this call blocks until data arrives
                     if (fromClient != null) {
                         info("Received from my client: " + fromClient);
                         processPayload(fromClient);
                     } else {
-                        throw new IOException("Connection interrupted"); // Specific exception for a clean break
+                        throw new IOException("Connection interrupted"); // explicit exception for a clean exit path
                     }
                 } catch (ClassCastException | ClassNotFoundException cce) {
                     System.err.println("Error reading object as specified type: " + cce.getMessage());
@@ -186,7 +186,7 @@ public abstract class BaseServerThread extends Thread {
                 }
             } // close while loop
         } catch (Exception e) {
-            // happens when client disconnects
+            // typically occurs when the client disconnects unexpectedly
             info("General Exception");
             e.printStackTrace();
             info("My Client disconnected");
@@ -201,12 +201,13 @@ public abstract class BaseServerThread extends Thread {
     }
 
     /**
-     * Cleanup method to close the connection and reset the user object
+     * Cleans up this ServerThread's resources by closing the socket, clearing
+     * references, and resetting the user state.
      */
     protected void cleanup() {
         info("ServerThread cleanup() start");
         try {
-            // close server-side end of connection
+            // close the server-side end of the socket connection
             currentRoom = null;
             out.close();
             client.close();
