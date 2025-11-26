@@ -29,19 +29,19 @@ import Project.Common.User;
 import Project.Common.TextFX.Color;
 
 /**
- * Demoing bi-directional communication between client and server in a
- * multi-client scenario
+ * Demonstrates two-way communication between a client and server
+ * in a multi-user environment.
  */
 public enum Client {
     INSTANCE;
 
     {
-        // statically initialize the client-side LoggerUtil
+        // Configure the client-side logger when the enum is initialized
         LoggerUtil.LoggerConfig config = new LoggerUtil.LoggerConfig();
-        config.setFileSizeLimit(2048 * 1024); // 2MB
+        config.setFileSizeLimit(2048 * 1024); // max log file size: 2MB
         config.setFileCount(1);
         config.setLogLocation("client.log");
-        // Set the logger configuration
+        // Apply the logger settings
         LoggerUtil.INSTANCE.setConfig(config);
     }
     private Socket server = null;
@@ -50,7 +50,7 @@ public enum Client {
     final Pattern ipAddressPattern = Pattern
             .compile("/connect\\s+(\\d{1,3}\\.\\d{1,3}\\.\\d{1,3}\\.\\d{1,3}:\\d{3,5})");
     final Pattern localhostPattern = Pattern.compile("/connect\\s+(localhost:\\d{3,5})");
-    private volatile boolean isRunning = true; // volatile for thread-safe visibility
+    private volatile boolean isRunning = true; // volatile for proper visibility across threads
     private final ConcurrentHashMap<Long, User> knownClients = new ConcurrentHashMap<Long, User>();
     private User myUser = new User();
     private Phase currentPhase = Phase.READY;
@@ -59,7 +59,7 @@ public enum Client {
         LoggerUtil.INSTANCE.severe(TextFX.colorize(String.format("%s", message), Color.RED));
     }
 
-    // needs to be private now that the enum logic is handling this
+    // Private constructor since enum handles instance management
     private Client() {
         LoggerUtil.INSTANCE.info("Client Created");
     }
@@ -69,28 +69,29 @@ public enum Client {
             return false;
         }
         // https://stackoverflow.com/a/10241044
-        // Note: these check the client's end of the socket connect; therefore they
-        // don't really help determine if the server had a problem
-        // and is just for lesson's sake
+        // Note: these checks only verify the client's side of the socket;
+        // they don't reliably indicate server-side issues and are mainly
+        // included as an instructional example.
         return server.isConnected() && !server.isClosed() && !server.isInputShutdown() && !server.isOutputShutdown();
     }
 
     /**
-     * Takes an IP address and a port to attempt a socket connection to a server.
+     * Attempts to open a socket connection to a server using the given
+     * IP address and port number.
      * 
-     * @param address
-     * @param port
-     * @return true if connection was successful
+     * @param address server IP or hostname
+     * @param port    server port
+     * @return true if the socket successfully connects
      */
     private boolean connect(String address, int port) {
         try {
             server = new Socket(address, port);
-            // channel to send to server
+            // stream used to send objects to the server
             out = new ObjectOutputStream(server.getOutputStream());
-            // channel to listen to server
+            // stream used to receive objects from the server
             in = new ObjectInputStream(server.getInputStream());
             LoggerUtil.INSTANCE.info("Client connected");
-            // Use CompletableFuture to run listenToServer() in a separate thread
+            // Run listenToServer() asynchronously on a separate thread
             CompletableFuture.runAsync(this::listenToServer);
         } catch (UnknownHostException e) {
             e.printStackTrace();
@@ -102,8 +103,8 @@ public enum Client {
 
     /**
      * <p>
-     * Check if the string contains the <i>connect</i> command
-     * followed by an IP address and port or localhost and port.
+     * Checks whether the input text contains the <i>connect</i> command
+     * followed by a valid IP address and port or localhost and port.
      * </p>
      * <p>
      * Example format: 123.123.123.123:3000
@@ -113,8 +114,8 @@ public enum Client {
      * </p>
      * https://www.w3schools.com/java/java_regex.asp
      * 
-     * @param text
-     * @return true if the text is a valid connection command
+     * @param text user input to evaluate
+     * @return true if the string represents a well-formed connection command
      */
     private boolean isConnection(String text) {
         Matcher ipMatcher = ipAddressPattern.matcher(text);
@@ -123,19 +124,19 @@ public enum Client {
     }
 
     /**
-     * Controller for handling various text commands.
+     * Central handler for user-entered commands.
      * <p>
-     * Add more here as needed
+     * Extend this with additional command handling as needed.
      * </p>
      * 
-     * @param text
-     * @return true if the text was a command or triggered a command
-     * @throws IOException
+     * @param text full text entered by the user
+     * @return true if the input was recognized as a command or caused a command to run
+     * @throws IOException if sending data to the server fails
      */
     private boolean processClientCommand(String text) throws IOException {
         boolean wasCommand = false;
         if (text.startsWith(Constants.COMMAND_TRIGGER)) {
-            text = text.substring(1); // remove the /
+            text = text.substring(1); // strip the leading '/'
             // System.out.println("Checking command: " + text);
             if (isConnection("/" + text)) {
                 if (myUser.getClientName() == null || myUser.getClientName().isEmpty()) {
@@ -143,12 +144,12 @@ public enum Client {
                             TextFX.colorize("Please set your name via /name <name> before connecting", Color.RED));
                     return true;
                 }
-                // replaces multiple spaces with a single space
-                // splits on the space after connect (gives us host and port)
-                // splits on : to get host as index 0 and port as index 1
+                // collapse repeated spaces into a single space
+                // split on the space after "connect" to isolate host and port
+                // then split on ":" to separate host (index 0) and port (index 1)
                 String[] parts = text.trim().replaceAll(" +", " ").split(" ")[1].split(":");
                 connect(parts[0].trim(), Integer.parseInt(parts[1].trim()));
-                sendClientName(myUser.getClientName());// sync follow-up data (handshake)
+                sendClientName(myUser.getClientName()); // send follow-up identification (handshake)
                 wasCommand = true;
             } else if (text.startsWith(Command.NAME.command)) {
                 text = text.replace(Command.NAME.command, "").trim();
@@ -157,7 +158,7 @@ public enum Client {
                             .warning(TextFX.colorize("This command requires a name as an argument", Color.RED));
                     return true;
                 }
-                myUser.setClientName(text);// temporary until we get a response from the server
+                myUser.setClientName(text); // temporary value until server confirms
                 LoggerUtil.INSTANCE.info(TextFX.colorize(String.format("Name set to %s", myUser.getClientName()),
                         Color.YELLOW));
                 wasCommand = true;
@@ -202,8 +203,7 @@ public enum Client {
                 sendRoomAction(text, RoomAction.JOIN);
                 wasCommand = true;
             } else if (text.startsWith(Command.LEAVE_ROOM.command) || text.startsWith("leave")) {
-                // Note: Accounts for /leave and /leaveroom variants (or anything beginning with
-                // /leave)
+                // Note: Handles /leave, /leaveroom, and any command that begins with "/leave"
                 sendRoomAction(text, RoomAction.LEAVE);
                 wasCommand = true;
             } else if (text.startsWith(Command.LIST_ROOMS.command)) {
@@ -236,13 +236,13 @@ public enum Client {
         return wasCommand;
     }
 
-    // Start Send*() methods
+    // Begin Send*() helper methods
     private void sendDoTurn(String text) throws IOException {
-        // NOTE for now using ReadyPayload as it has the necessary properties
-        // An actual turn may include other data for your project
+        // NOTE: currently reusing ReadyPayload since it already contains the fields we need
+        // A dedicated turn payload could include more details specific to your project
         ReadyPayload rp = new ReadyPayload();
         rp.setPayloadType(PayloadType.TURN);
-        rp.setReady(true); // <- technically not needed as we'll use the payload type as a trigger
+        rp.setReady(true); // <- technically unnecessary since payload type is the main trigger
         rp.setMessage(text);
         sendToServer(rp);
     }
@@ -266,24 +266,24 @@ public enum Client {
     }
 
     /**
-     * Sends the client's intent to be ready.
-     * Can also be used to toggle the ready state if coded on the server-side
+     * Informs the server that this client is ready.
+     * On the server side, this could also be interpreted as a toggle
+     * depending on implementation.
      * 
-     * @throws IOException
+     * @throws IOException if sending the payload fails
      */
     private void sendReady() throws IOException {
         ReadyPayload rp = new ReadyPayload();
-        // rp.setReady(true); // <- technically not needed as we'll use the payload type
-        // as a trigger
+        // rp.setReady(true); // <- not required if server only checks payload type
         sendToServer(rp);
     }
 
     /**
-     * Sends a room action to the server
+     * Sends an action related to room management to the server.
      * 
-     * @param roomName
-     * @param roomAction (join, leave, create)
-     * @throws IOException
+     * @param roomName   the name of the room being targeted
+     * @param roomAction type of room operation (join, leave, create, list)
+     * @throws IOException if there is a problem communicating with the server
      */
     private void sendRoomAction(String roomName, RoomAction roomAction) throws IOException {
         Payload payload = new Payload();
@@ -309,10 +309,10 @@ public enum Client {
     }
 
     /**
-     * Sends a reverse message action to the server
+     * Sends a "reverse message" request to the server.
      * 
-     * @param message
-     * @throws IOException
+     * @param message the original string to be reversed or processed
+     * @throws IOException if sending fails
      */
     private void sendReverse(String message) throws IOException {
         Payload payload = new Payload();
@@ -323,9 +323,9 @@ public enum Client {
     }
 
     /**
-     * Sends a disconnect action to the server
+     * Notifies the server that this client wishes to disconnect.
      * 
-     * @throws IOException
+     * @throws IOException if sending fails
      */
     private void sendDisconnect() throws IOException {
         Payload payload = new Payload();
@@ -334,10 +334,10 @@ public enum Client {
     }
 
     /**
-     * Sends a message to the server
+     * Sends a general chat/message payload to the server.
      * 
-     * @param message
-     * @throws IOException
+     * @param message content to send to other clients via the server
+     * @throws IOException if writing to the output stream fails
      */
     private void sendMessage(String message) throws IOException {
         Payload payload = new Payload();
@@ -347,10 +347,11 @@ public enum Client {
     }
 
     /**
-     * Sends the client's name to the server (what the user desires to be called)
+     * Sends the user's preferred display name to the server so it knows
+     * how to refer to this client.
      * 
-     * @param name
-     * @throws IOException
+     * @param name desired display name
+     * @throws IOException if the payload cannot be sent
      */
     private void sendClientName(String name) throws IOException {
         ConnectionPayload payload = new ConnectionPayload();
@@ -362,31 +363,32 @@ public enum Client {
     private void sendToServer(Payload payload) throws IOException {
         if (isConnected()) {
             out.writeObject(payload);
-            out.flush(); // good practice to ensure data is written out immediately
+            out.flush(); // ensures data is pushed out immediately
         } else {
             LoggerUtil.INSTANCE.warning(
                     "Not connected to server (hint: type `/connect host:port` without the quotes and replace host/port with the necessary info)");
         }
     }
-    // End Send*() methods
+    // End Send*() helper methods
 
     public void start() throws IOException {
         LoggerUtil.INSTANCE.info("Client starting");
 
-        // Use CompletableFuture to run listenToInput() in a separate thread
+        // Run listenToInput() on a separate thread using CompletableFuture
         CompletableFuture<Void> inputFuture = CompletableFuture.runAsync(this::listenToInput);
 
-        // Wait for inputFuture to complete to ensure proper termination
+        // Block until the input-handling thread finishes to allow a clean shutdown
         inputFuture.join();
     }
 
     /**
-     * Listens for messages from the server
+     * Continuously listens for incoming data from the server and
+     * dispatches it to the appropriate handler.
      */
     private void listenToServer() {
         try {
             while (isRunning && isConnected()) {
-                Payload fromServer = (Payload) in.readObject(); // blocking read
+                Payload fromServer = (Payload) in.readObject(); // blocking read until an object arrives
                 if (fromServer != null) {
                     processPayload(fromServer);
 
@@ -413,7 +415,7 @@ public enum Client {
 
     private void processPayload(Payload payload) {
         switch (payload.getPayloadType()) {
-            case CLIENT_CONNECT:// unused
+            case CLIENT_CONNECT: // unused
                 break;
             case CLIENT_ID:
                 processClientData(payload);
@@ -448,7 +450,7 @@ public enum Client {
                 processReadyStatus(payload, true);
                 break;
             case PayloadType.RESET_READY:
-                // note no data necessary as this is just a trigger
+                // no payload body required; this acts purely as a reset signal
                 processResetReady();
                 break;
             case PayloadType.PHASE:
@@ -459,7 +461,7 @@ public enum Client {
                 processTurn(payload);
                 break;
             case PayloadType.RESET_TURN:
-                // note no data necessary as this is just a trigger
+                // no extra data required; this is purely a reset trigger
                 processResetTurn();
                 break;
             case PayloadType.POINTS:
@@ -472,14 +474,14 @@ public enum Client {
         }
     }
 
-    // Start process*() methods
+    // Begin process*() handler methods
     private void processResetTurn() {
         knownClients.values().forEach(cp -> cp.setTookTurn(false));
         System.out.println("Turn status reset for everyone");
     }
 
     private void processTurn(Payload payload) {
-        // Note: For now assuming ReadyPayload (this may be changed later)
+        // Note: Currently assuming ReadyPayload (may be replaced with a custom payload later)
         if (!(payload instanceof ReadyPayload)) {
             error("Invalid payload subclass for processTurn");
             return;
@@ -554,7 +556,7 @@ public enum Client {
 
         }
         myUser.setClientId(payload.getClientId());
-        myUser.setClientName(((ConnectionPayload) payload).getClientName());// confirmation from Server
+        myUser.setClientName(((ConnectionPayload) payload).getClientName()); // confirmation from Server
         knownClients.put(myUser.getClientId(), myUser);
         LoggerUtil.INSTANCE.info(TextFX.colorize("Connected", Color.GREEN));
     }
@@ -581,8 +583,7 @@ public enum Client {
             return;
         }
         ConnectionPayload connectionPayload = (ConnectionPayload) payload;
-        // use DEFAULT_CLIENT_ID to clear knownClients (mostly for disconnect and room
-        // transitions)
+        // use DEFAULT_CLIENT_ID to clear knownClients (typically on disconnect or when changing rooms)
         if (connectionPayload.getClientId() == Constants.DEFAULT_CLIENT_ID) {
             knownClients.clear();
             return;
@@ -590,7 +591,7 @@ public enum Client {
         switch (connectionPayload.getPayloadType()) {
 
             case ROOM_LEAVE:
-                // remove from map
+                // remove departing user from the tracking map
                 if (knownClients.containsKey(connectionPayload.getClientId())) {
                     knownClients.remove(connectionPayload.getClientId());
                 }
@@ -603,9 +604,9 @@ public enum Client {
                 if (connectionPayload.getMessage() != null) {
                     LoggerUtil.INSTANCE.info(TextFX.colorize(connectionPayload.getMessage(), Color.GREEN));
                 }
-                // cascade to manage knownClients
+                // fall-through to keep the client list synchronized
             case SYNC_CLIENT:
-                // add to map
+                // add or update client information in the map
                 if (!knownClients.containsKey(connectionPayload.getClientId())) {
                     User user = new User();
                     user.setClientId(connectionPayload.getClientId());
@@ -636,7 +637,7 @@ public enum Client {
         long id = pp.getClientId();
         int pts = pp.getPoints();
         if (!knownClients.containsKey(id)) {
-            // create a placeholder user entry
+            // create a placeholder entry if the user isn't already tracked
             User user = new User();
             user.setClientId(id);
             knownClients.put(id, user);
@@ -645,15 +646,16 @@ public enum Client {
         u.setPoints(pts);
         System.out.println(String.format("%s has %d points", u.getDisplayName(), pts));
     }
-    // End process*() methods
+    // End process*() handler methods
 
     /**
-     * Listens for keyboard input from the user
+     * Watches for keyboard input from the local user and forwards
+     * it either as commands or chat messages to the server.
      */
     private void listenToInput() {
         try (Scanner si = new Scanner(System.in)) {
-            LoggerUtil.INSTANCE.info("Waiting for input"); // moved here to avoid console spam
-            while (isRunning) { // Run until isRunning is false
+            LoggerUtil.INSTANCE.info("Waiting for input"); // placed here to avoid repeated log spam
+            while (isRunning) { // continue loop until isRunning is flipped to false
                 String userInput = si.nextLine();
                 if (!processClientCommand(userInput)) {
                     sendMessage(userInput);
@@ -667,17 +669,17 @@ public enum Client {
     }
 
     /**
-     * Closes the client connection and associated resources
+     * Shuts down the client and cleans up all related resources.
      */
     private void close() {
         isRunning = false;
         closeServerConnection();
         LoggerUtil.INSTANCE.info("Client terminated");
-        // System.exit(0); // Terminate the application
+        // System.exit(0); // Optionally terminate the entire application
     }
 
     /**
-     * Closes the server connection and associated resources
+     * Closes the connection to the server along with input/output streams.
      */
     private void closeServerConnection() {
         try {
