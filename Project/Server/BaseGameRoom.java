@@ -153,9 +153,10 @@ public abstract class BaseGameRoom extends Room {
      * If the requirement is met, the session begins; otherwise, the session ends.
      */
     private void checkReadyStatus() {
+        // Always reset the timer after it fires so a new one can be started
+        resetReadyTimer();
         long numReady = clientsInRoom.values().stream().filter(p -> p.isReady()).count();
         if (numReady >= MINIMUM_REQUIRED_TO_START) {
-            resetReadyTimer();
             onSessionStart();
         } else {
             onSessionEnd();
