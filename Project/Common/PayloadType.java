@@ -1,26 +1,35 @@
 package Project.Common;
 
 public enum PayloadType {
-       CLIENT_CONNECT, // client initiating a connection to the server (sending initial data like name)
-       CLIENT_ID, // server providing a unique identifier back to the client
-       SYNC_CLIENT, // quietly updates/synchronizes the list of clients in a room
-       DISCONNECT, // explicit request to disconnect from the server
-       ROOM_CREATE, // request to create a new room
-       ROOM_JOIN, // request to join an existing room
-       ROOM_LEAVE, // request to leave the current room
-       REVERSE, // reverse-text style operation
-       MESSAGE, // standard chat payload containing sender info and message text
-       ROOM_LIST, // response or request that involves listing available rooms
-       READY, // client signaling they are ready; server uses it to update one client's ready status
-       SYNC_READY, // non-verbose READY update, used to synchronize ready flags for clients in a GameRoom
-       RESET_READY, // instruction to reset all local ready flags on the client side (reduces extra network calls)
-       PHASE, // communicates the current phase/state of the game session (used as a gate for allowed actions)
-       TURN, // indicates a player has taken a turn and that action should be propagated
-       SYNC_TURN, // silent TURN update, used to align each client's view of who has taken a turn in a GameRoom
-       RESET_TURN, // directive for clients to clear local turn-tracking state
-       PICK, // client selection for rock/paper/scissors choice
-       POINTS, // server update with current player score information
-       ROUND_START, // notification that a new round has begun
-       ROUND_END, // notification that the current round has concluded
-       SCOREBOARD, // request or response for overall scoring/leaderboard data
+       CLIENT_CONNECT, // client requesting to connect to server (passing of initialization data
+                       // [name])
+       CLIENT_ID, // server sending client id
+       SYNC_CLIENT, // silent syncing of clients in room
+       DISCONNECT, // distinct disconnect action
+       ROOM_CREATE,
+       ROOM_JOIN,
+       ROOM_LEAVE,
+       REVERSE,
+       MESSAGE, // sender and message,
+       ROOM_LIST, // list of rooms
+       READY, // client to trigger themselves as ready, server to sync the related status of a
+              // particular client
+       SYNC_READY, // quiet version of READY, used to sync existing ready status of clients in a
+                   // GameRoom
+       RESET_READY, // trigger to tell the client to reset their whole local list's ready status
+                    // (saves network requests)
+       PHASE, // syncs current phase of session (used as a switch to only allow certain logic
+              // to execute)
+       TURN, // example of taking a turn and syncing a turn action
+       SYNC_TURN, // quiet version of TURN, used to sync existing turn status of clients in a
+                  // GameRoom
+       RESET_TURN, // trigger to tell client to reset their local list turn status
+       PICK, // client picks rock/paper/scissors
+       GAME_SETTINGS, // sync game settings like option count and cooldown
+       PLAYER_STATE, // sync player full state (points, eliminated, away, spectator)
+       POINTS, // server sync of player points
+       ROUND_START,
+       ROUND_END,
+       SCOREBOARD,
+       TIME, // syncs current time of various timers
 }

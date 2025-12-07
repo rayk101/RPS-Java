@@ -1,23 +1,28 @@
 package Project.Common;
 
 public class PointsPayload extends Payload {
-    private int points = 0;
+    private int points;
 
+    public PointsPayload() {
+        setPayloadType(PayloadType.POINTS);
+    }
+
+    /**
+     * @return the points
+     */
     public int getPoints() {
         return points;
     }
 
+    /**
+     * @param points the points to set
+     */
     public void setPoints(int points) {
         this.points = points;
     }
 
     @Override
     public String toString() {
-        return String.format("PointsPayload{clientId=%d, points=%d, type=%s}", getClientId(), points,
-                getPayloadType());
+        return super.toString() + String.format(" points=%d", points);
     }
 }
-// rk975 - 11/26/25
-// Overrides toString() to provide a readable text version of the object.
-// Uses String.format() to include clientId, points, and the payload type.
-//Helps with debugging and logging by showing object data in one line.
