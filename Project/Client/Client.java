@@ -162,7 +162,7 @@ public enum Client {
                 LoggerUtil.INSTANCE.info(TextFX.colorize(String.format("Name set to %s", myUser.getClientName()),
                         Color.YELLOW));
                 wasCommand = true;
-            } else if (text.equalsIgnoreCase(Command.LIST_USERS.command)) {
+            } else if (text.trim().equalsIgnoreCase(Command.LIST_USERS.command)) {
                 String message = TextFX.colorize("Known clients:\n", Color.CYAN);
                 LoggerUtil.INSTANCE.info(TextFX.colorize("Known clients:", Color.CYAN));
                 message += String.join("\n", knownClients.values().stream()
@@ -174,10 +174,10 @@ public enum Client {
                         .toList());
                 LoggerUtil.INSTANCE.info(message);
                 wasCommand = true;
-            } else if (Command.QUIT.command.equalsIgnoreCase(text)) {
+            } else if (Command.QUIT.command.equalsIgnoreCase(text.trim())) {
                 close();
                 wasCommand = true;
-            } else if (Command.DISCONNECT.command.equalsIgnoreCase(text)) {
+            } else if (Command.DISCONNECT.command.equalsIgnoreCase(text.trim())) {
                 sendDisconnect();
                 wasCommand = true;
             } else if (text.startsWith(Command.REVERSE.command)) {
@@ -211,7 +211,7 @@ public enum Client {
 
                 sendRoomAction(text, RoomAction.LIST);
                 wasCommand = true;
-            } else if (text.equalsIgnoreCase(Command.READY.command)) {
+            } else if (text.trim().equalsIgnoreCase(Command.READY.command)) {
                 sendReady();
                 wasCommand = true;
             } else if (text.startsWith(Command.EXAMPLE_TURN.command)) {
@@ -228,7 +228,7 @@ public enum Client {
                 }
                 sendPick(text.trim());
                 wasCommand = true;
-            } else if (text.equalsIgnoreCase(Command.SCOREBOARD.command)) {
+            } else if (text.trim().equalsIgnoreCase(Command.SCOREBOARD.command)) {
                 sendScoreboardRequest();
                 wasCommand = true;
             }
