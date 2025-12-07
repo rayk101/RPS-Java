@@ -2,34 +2,37 @@ package Project.Server;
 
 import Project.Common.ConnectionPayload;
 import Project.Common.Constants;
+import Project.Common.GameSettingsPayload;
 import Project.Common.LoggerUtil;
 import Project.Common.Payload;
 import Project.Common.PayloadType;
 import Project.Common.Phase;
 import Project.Common.PickPayload;
+import Project.Common.PlayerStatePayload;
 import Project.Common.PointsPayload;
 import Project.Common.ReadyPayload;
 import Project.Common.RoomAction;
 import Project.Common.RoomResultPayload;
 import Project.Common.TextFX;
 import Project.Common.TextFX.Color;
+import Project.Common.TimerPayload;
+import Project.Common.TimerType;
 import java.net.Socket;
 import java.util.List;
 import java.util.Objects;
 import java.util.function.Consumer;
 
 /**
- * Server-side wrapper representing a single connected client.
+ * A server-side representation of a single client
  */
 public class ServerThread extends BaseServerThread {
-    // callback used to notify listeners when this thread has finished initialization
-    private Consumer<ServerThread> onInitializationComplete;
+    private final Consumer<ServerThread> onInitializationComplete; // callback to inform when this object is ready
 
     /**
-     * Convenience logger wrapper so we don't have to repeat the formatted output
-     * syntax everywhere.
-     *
-     * @param message text to log
+     * A wrapper method so we don't need to keep typing out the long/complex sysout
+     * line inside
+     * 
+     * @param message
      */
     @Override
     protected void info(String message) {
@@ -38,23 +41,59 @@ public class ServerThread extends BaseServerThread {
     }
 
     /**
-     * Wraps the socket for a single client and accepts a callback to notify when
-     * this ServerThread is fully initialized.
-     *
-     * @param myClient                underlying client socket (must not be null)
-     * @param onInitializationComplete function to invoke once this object is ready
+     * Wraps the Socket connection and takes a Server reference and a callback
+     * 
+     * @param myClient
+     * @param server
+     * @param onInitializationComplete method to inform listener that this object is
+     *                                 ready
      */
     protected ServerThread(Socket myClient, Consumer<ServerThread> onInitializationComplete) {
         Objects.requireNonNull(myClient, "Client socket cannot be null");
         Objects.requireNonNull(onInitializationComplete, "callback cannot be null");
-        info("ServerThread created");
-        // keep reference to the client connection
+        // get communication channels to single client
         this.client = myClient;
-        // client id is assigned later by the Server callback
+        // this.clientId = this.threadId(); // An id associated with the thread
+        // instance, used as a temporary identifier
         this.onInitializationComplete = onInitializationComplete;
+        // Initialization info call (safe via overridable method in constructor)
+        LoggerUtil.INSTANCE
+                .info(TextFX.colorize(String.format("Thread[%s]: ServerThread created", this.getClientId()), Color.CYAN));
+
     }
 
     // Start Send*() Methods
+    /**
+     * Syncs a specific client's points
+     * 
+     * @param clientId
+     * @param points
+     * @return
+     */
+    public boolean sendPlayerPoints(long clientId, int points) {
+        PointsPayload rp = new PointsPayload();
+        rp.setPoints(points);
+        rp.setClientId(clientId);
+        return sendToClient(rp);
+    }
+
+    public boolean sendGameEvent(String str) {
+        return sendMessage(Constants.GAME_EVENT_CHANNEL, str);
+    }
+
+    /**
+     * Syncs the current time of a specific TimerType
+     * 
+     * @param timerType
+     * @param time
+     * @return
+     */
+    public boolean sendCurrentTime(TimerType timerType, int time) {
+        TimerPayload tp = new TimerPayload();
+        tp.setTime(time);
+        tp.setTimerType(timerType);
+        return sendToClient(tp);
+    }
 
     public boolean sendResetTurnStatus() {
         ReadyPayload rp = new ReadyPayload();
@@ -67,8 +106,8 @@ public class ServerThread extends BaseServerThread {
     }
 
     public boolean sendTurnStatus(long clientId, boolean didTakeTurn, boolean quiet) {
-        // NOTE: using ReadyPayload here since it already carries the needed fields
-        // A real "turn" payload could be introduced later for more complex projects
+        // NOTE for now using ReadyPayload as it has the necessary properties
+        // An actual turn may include other data for your project
         ReadyPayload rp = new ReadyPayload();
         rp.setPayloadType(quiet ? PayloadType.SYNC_TURN : PayloadType.TURN);
         rp.setClientId(clientId);
@@ -94,12 +133,12 @@ public class ServerThread extends BaseServerThread {
     }
 
     /**
-     * Synchronizes the ready flag for a particular client id.
-     *
-     * @param clientId id of the player being updated
-     * @param isReady  whether they are marked ready or not
-     * @param quiet    if true, performs a silent sync without extra client output
-     * @return true if the send operation succeeded
+     * Sync ready status of client id
+     * 
+     * @param clientId who
+     * @param isReady  ready or not
+     * @param quiet    silently mark ready
+     * @return
      */
     public boolean sendReadyStatus(long clientId, boolean isReady, boolean quiet) {
         ReadyPayload rp = new ReadyPayload();
@@ -124,38 +163,34 @@ public class ServerThread extends BaseServerThread {
         return sendToClient(payload);
     }
 
-    /**
-     * Instructs the client to clear its local user list.
-     *
-     * @return true if the message is delivered successfully
-     */
     protected boolean sendResetUserList() {
-        return sendClientInfo(Constants.DEFAULT_CLIENT_ID, null, RoomAction.JOIN);
+        return sendClientInfo(Constants.DEFAULT_CLIENT_ID, null, null, RoomAction.JOIN);
     }
 
     /**
-     * Sends client identity info (id, name, join/leave status) to this client.
-     *
-     * @param clientId   use -1 to indicate a reset or clear operation
-     * @param clientName name to associate with that id
-     * @param action     RoomAction.JOIN or RoomAction.LEAVE
-     * @return true if the payload is sent without error
+     * Syncs Client Info (id, name, join status) to the client
+     * 
+     * @param clientId   use -1 for reset/clear
+     * @param clientName
+     * @param action     RoomAction of Join or Leave
+     * @return true for successful send
      */
-    protected boolean sendClientInfo(long clientId, String clientName, RoomAction action) {
-        return sendClientInfo(clientId, clientName, action, false);
+    protected boolean sendClientInfo(long clientId, String clientName, String roomName, RoomAction action) {
+        return sendClientInfo(clientId, clientName, roomName, action, false);
     }
 
     /**
-     * Sends client identity info (id, name, join/leave status) to this client.
-     *
-     * @param clientId   use -1 to indicate a reset or clear operation
-     * @param clientName name belonging to the given id
-     * @param action     RoomAction of JOIN or LEAVE
-     * @param isSync     when true, uses a "silent" sync-type payload so the client
-     *                   doesn't show additional feedback
-     * @return true if the send completed successfully
+     * Syncs Client Info (id, name, join status) to the client
+     * 
+     * @param clientId   use -1 for reset/clear
+     * @param clientName
+     * @param action     RoomAction of Join or Leave
+     * @param isSync     True is used to not show output on the client side (silent
+     *                   sync)
+     * @return true for successful send
      */
-    protected boolean sendClientInfo(long clientId, String clientName, RoomAction action, boolean isSync) {
+    protected boolean sendClientInfo(long clientId, String clientName, String roomName, RoomAction action,
+            boolean isSync) {
         ConnectionPayload payload = new ConnectionPayload();
         switch (action) {
             case JOIN:
@@ -172,30 +207,31 @@ public class ServerThread extends BaseServerThread {
         }
         payload.setClientId(clientId);
         payload.setClientName(clientName);
+        payload.setMessage(roomName);
         return sendToClient(payload);
     }
 
     /**
-     * Sends this thread's current client id to the connected client.
-     * Serves as part of the connection handshake.
-     *
-     * @return true if the handshake payload is sent
+     * Sends this client's id to the client.
+     * This will be a successfully connection handshake
+     * 
+     * @return true for successful send
      */
     protected boolean sendClientId() {
         ConnectionPayload payload = new ConnectionPayload();
         payload.setPayloadType(PayloadType.CLIENT_ID);
         payload.setClientId(getClientId());
-        // Can be used for server-side name normalization or profanity filtering if needed
-        payload.setClientName(getClientName());
+        payload.setClientName(getClientName());// Can be used as a Server-side override of username (i.e., profanity
+                                               // filter)
         return sendToClient(payload);
     }
 
     /**
-     * Sends a chat/message payload back to the client.
-     *
-     * @param clientId id of the sender (could be another client or server)
-     * @param message  text of the message
-     * @return true if the send is successful
+     * Sends a message to the client
+     * 
+     * @param clientId who it's from
+     * @param message
+     * @return true for successful send
      */
     protected boolean sendMessage(long clientId, String message) {
         Payload payload = new Payload();
@@ -214,53 +250,44 @@ public class ServerThread extends BaseServerThread {
     }
 
     // End Send*() Methods
-
     @Override
     protected void processPayload(Payload incoming) {
 
         switch (incoming.getPayloadType()) {
             case CLIENT_CONNECT:
                 setClientName(((ConnectionPayload) incoming).getClientName().trim());
-                break;
 
+                break;
             case DISCONNECT:
                 currentRoom.handleDisconnect(this);
                 break;
-
             case MESSAGE:
                 currentRoom.handleMessage(this, incoming.getMessage());
                 break;
-
             case REVERSE:
                 currentRoom.handleReverseText(this, incoming.getMessage());
                 break;
-
             case ROOM_CREATE:
                 currentRoom.handleCreateRoom(this, incoming.getMessage());
                 break;
-
             case ROOM_JOIN:
                 currentRoom.handleJoinRoom(this, incoming.getMessage());
                 break;
-
             case ROOM_LEAVE:
                 currentRoom.handleJoinRoom(this, Room.LOBBY);
                 break;
-
             case ROOM_LIST:
                 currentRoom.handleListRooms(this, incoming.getMessage());
                 break;
-
             case READY:
-                // no additional fields are required; the type alone signals the intent
+                // no data needed as the intent will be used as the trigger
                 try {
-                    // Game-specific behavior is handled in the GameRoom subclass
+                    // cast to GameRoom as the subclass will handle all Game logic
                     ((GameRoom) currentRoom).handleReady(this);
                 } catch (Exception e) {
                     sendMessage(Constants.DEFAULT_CLIENT_ID, "You must be in a GameRoom to do the ready check");
                 }
                 break;
-
             case SCOREBOARD:
                 try {
                     ((GameRoom) currentRoom).handleScoreboard(this);
@@ -268,40 +295,48 @@ public class ServerThread extends BaseServerThread {
                     sendMessage(Constants.DEFAULT_CLIENT_ID, "Unable to provide scoreboard");
                 }
                 break;
-            // rk975 - 11/26/25
-            // Handles a player's pick choice during the game.
-            // Expects a PickPayload containing the choice ("r", "p", or "s").
-            // Delegates the processing to the GameRoom's handlePick() method.
-
             case PICK:
                 try {
                     PickPayload pp = (PickPayload) incoming;
-                    LoggerUtil.INSTANCE.info(
-                            String.format("Received pick from %s -> %s", pp.getClientId(), pp.getChoice()));
+                    LoggerUtil.INSTANCE.info(String.format("Received pick from %s -> %s", pp.getClientId(), pp.getChoice()));
                     ((GameRoom) currentRoom).handlePick(this, pp.getChoice());
                 } catch (Exception e) {
                     sendMessage(Constants.DEFAULT_CLIENT_ID, "You must be in a GameRoom to pick");
                 }
                 break;
-
-            case TURN:
-                // like READY, this relies on the type to represent the action intent
+            case GAME_SETTINGS:
                 try {
-                    // delegate turn processing logic to the GameRoom
+                    GameSettingsPayload gp = (GameSettingsPayload) incoming;
+                    ((GameRoom) currentRoom).handleSettings(this, gp.getOptionCount(), gp.isCooldownEnabled());
+                } catch (Exception e) {
+                    sendMessage(Constants.DEFAULT_CLIENT_ID, "Unable to apply game settings");
+                }
+                break;
+            case PLAYER_STATE:
+                try {
+                    PlayerStatePayload pp = (PlayerStatePayload) incoming;
+                    // interpret as a request to set away/spectator for this client
+                    ((GameRoom) currentRoom).handlePlayerState(this, pp);
+                } catch (Exception e) {
+                    sendMessage(Constants.DEFAULT_CLIENT_ID, "Unable to update player state");
+                }
+                break;
+            case TURN:
+                // no data needed as the intent will be used as the trigger
+                try {
+                    // cast to GameRoom as the subclass will handle all Game logic
                     ((GameRoom) currentRoom).handleTurnAction(this, incoming.getMessage());
                 } catch (Exception e) {
                     sendMessage(Constants.DEFAULT_CLIENT_ID, "You must be in a GameRoom to do a turn");
                 }
                 break;
-
             default:
                 LoggerUtil.INSTANCE.warning(TextFX.colorize("Unknown payload type received", Color.RED));
                 break;
         }
     }
 
-    // limited user data exposure helpers
-
+    // limited user data exposer
     protected boolean isReady() {
         return this.user.isReady();
     }
@@ -318,9 +353,21 @@ public class ServerThread extends BaseServerThread {
         this.user.setTookTurn(tookTurn);
     }
 
+    protected int getPoints() {
+        return this.user.getPoints();
+    }
+
+    protected void setPoints(int points) {
+        this.user.setPoints(points);
+    }
+
+    protected void changePoints(int points) {
+        this.user.setPoints(this.user.getPoints() + points);
+    }
+
     @Override
     protected void onInitialized() {
-        // once we've received and stored the client name, consider this thread ready
+        // once receiving the desired client name the object is ready
         onInitializationComplete.accept(this);
     }
 }
