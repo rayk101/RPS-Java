@@ -1,6 +1,6 @@
 ## Project Name: Rock Paper Scissors
 ### Project Summary: Group RPS (2+ players). Battles are compared clockwise (A -> B, B -> C, C -> A), you determine if elimination occurs during attack (ex. A -> B) or defense (ex. C -> A). Points will be tracked for wins, but session ends with “last person standing”.
-### Github Link: (main branch with your final project)
+### Github Link: https://github.com/rayk101/rk975-IT114-003-2025/tree/main 
 ### Your Name: Rayyan Khan 
 ### Course/Section: IT114-003
  
