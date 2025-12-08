@@ -1,10 +1,38 @@
 package Project.Client;
 
+import Project.Client.Interfaces.IClientEvents;
+import Project.Client.Interfaces.IConnectionEvents;
+import Project.Client.Interfaces.IMessageEvents;
+import Project.Client.Interfaces.IPhaseEvent;
+import Project.Client.Interfaces.IPointsEvent;
+import Project.Client.Interfaces.IReadyEvent;
+import Project.Client.Interfaces.IRoomEvents;
+import Project.Client.Interfaces.ITimeEvents;
+import Project.Client.Interfaces.ITurnEvent;
+import Project.Common.Command;
+import Project.Common.ConnectionPayload;
+import Project.Common.Constants;
+import Project.Common.GameSettingsPayload;
+import Project.Common.LoggerUtil;
+import Project.Common.Payload;
+import Project.Common.PayloadType;
+import Project.Common.Phase;
+import Project.Common.PickPayload;
+import Project.Common.PlayerStatePayload;
+import Project.Common.PointsPayload;
+import Project.Common.ReadyPayload;
+import Project.Common.RoomAction;
+import Project.Common.RoomResultPayload;
+import Project.Common.TextFX;
+import Project.Common.TextFX.Color;
+import Project.Common.TimerPayload;
+import Project.Common.User;
 import java.io.IOException;
 import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
 import java.net.Socket;
 import java.net.UnknownHostException;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Scanner;
 import java.util.concurrent.CompletableFuture;
@@ -12,36 +40,20 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
-import Project.Common.Command;
-import Project.Common.ConnectionPayload;
-import Project.Common.Constants;
-import Project.Common.LoggerUtil;
-import Project.Common.Payload;
-import Project.Common.PayloadType;
-import Project.Common.Phase;
-import Project.Common.ReadyPayload;
-import Project.Common.RoomAction;
-import Project.Common.RoomResultPayload;
-import Project.Common.PickPayload;
-import Project.Common.PointsPayload;
-import Project.Common.TextFX;
-import Project.Common.User;
-import Project.Common.TextFX.Color;
-
 /**
- * Demonstrates two-way communication between a client and server
- * in a multi-user environment.
+ * Demoing bi-directional communication between client and server in a
+ * multi-client scenario
  */
 public enum Client {
     INSTANCE;
 
     {
-        // Configure the client-side logger when the enum is initialized
+        // statically initialize the client-side LoggerUtil
         LoggerUtil.LoggerConfig config = new LoggerUtil.LoggerConfig();
-        config.setFileSizeLimit(2048 * 1024); // max log file size: 2MB
+        config.setFileSizeLimit(2048 * 1024); // 2MB
         config.setFileCount(1);
         config.setLogLocation("client.log");
-        // Apply the logger settings
+        // Set the logger configuration
         LoggerUtil.INSTANCE.setConfig(config);
     }
     private Socket server = null;
@@ -50,18 +62,45 @@ public enum Client {
     final Pattern ipAddressPattern = Pattern
             .compile("/connect\\s+(\\d{1,3}\\.\\d{1,3}\\.\\d{1,3}\\.\\d{1,3}:\\d{3,5})");
     final Pattern localhostPattern = Pattern.compile("/connect\\s+(localhost:\\d{3,5})");
-    private volatile boolean isRunning = true; // volatile for proper visibility across threads
-    private final ConcurrentHashMap<Long, User> knownClients = new ConcurrentHashMap<Long, User>();
-    private User myUser = new User();
+    private volatile boolean isRunning = true; // volatile for thread-safe visibility
+    private final ConcurrentHashMap<Long, User> knownClients = new ConcurrentHashMap<>();
+    private final User myUser = new User();
     private Phase currentPhase = Phase.READY;
+    private int currentOptionCount = 3;
+    private boolean cooldownEnabled = false;
+    private long creatorClientId = Constants.DEFAULT_CLIENT_ID;
+    // callback that updates the UI
+    private static final List<IClientEvents> events = new ArrayList<>();
+    private String currentRoom;
 
     private void error(String message) {
         LoggerUtil.INSTANCE.severe(TextFX.colorize(String.format("%s", message), Color.RED));
     }
 
-    // Private constructor since enum handles instance management
+    // needs to be private now that the enum logic is handling this
     private Client() {
         LoggerUtil.INSTANCE.info("Client Created");
+    }
+
+    public void registerCallback(IClientEvents e) {
+        events.add(e);
+    }
+
+    /**
+     * Used for client-side feedback
+     * 
+     * @param str
+     */
+    public void clientSideGameEvent(String str) {
+        passToUICallback(IMessageEvents.class, e -> e.onMessageReceive(Constants.GAME_EVENT_CHANNEL, str));
+    }
+
+    public boolean isMyClientIdSet() {
+        return myUser != null && myUser.getClientId() != Constants.DEFAULT_CLIENT_ID;
+    }
+
+    public boolean isMyClientId(long clientId) {
+        return isMyClientIdSet() && myUser.getClientId() == clientId;
     }
 
     public boolean isConnected() {
@@ -69,29 +108,33 @@ public enum Client {
             return false;
         }
         // https://stackoverflow.com/a/10241044
-        // Note: these checks only verify the client's side of the socket;
-        // they don't reliably indicate server-side issues and are mainly
-        // included as an instructional example.
+        // Note: these check the client's end of the socket connect; therefore they
+        // don't really help determine if the server had a problem
+        // and is just for lesson's sake
         return server.isConnected() && !server.isClosed() && !server.isInputShutdown() && !server.isOutputShutdown();
     }
 
+    public long getCreatorClientId() {
+        return creatorClientId;
+    }
+
     /**
-     * Attempts to open a socket connection to a server using the given
-     * IP address and port number.
+     * Takes an IP address and a port to attempt a socket connection to a server.
      * 
-     * @param address server IP or hostname
-     * @param port    server port
-     * @return true if the socket successfully connects
+     * @param address
+     * @param port
+     * @return true if connection was successful
      */
+    @Deprecated
     private boolean connect(String address, int port) {
         try {
             server = new Socket(address, port);
-            // stream used to send objects to the server
+            // channel to send to server
             out = new ObjectOutputStream(server.getOutputStream());
-            // stream used to receive objects from the server
+            // channel to listen to server
             in = new ObjectInputStream(server.getInputStream());
             LoggerUtil.INSTANCE.info("Client connected");
-            // Run listenToServer() asynchronously on a separate thread
+            // Use CompletableFuture to run listenToServer() in a separate thread
             CompletableFuture.runAsync(this::listenToServer);
         } catch (UnknownHostException e) {
             e.printStackTrace();
@@ -102,9 +145,37 @@ public enum Client {
     }
 
     /**
+     * Takes an ip address and a port to attempt a socket connection to a server.
+     * 
+     * @param address
+     * @param port
+     * @param username
+     * @return true if connection was successful
+     */
+    public boolean connect(String address, int port, String username) {
+        myUser.setClientName(username);
+        try {
+            server = new Socket(address, port);
+            // channel to send to server
+            out = new ObjectOutputStream(server.getOutputStream());
+            // channel to listen to server
+            in = new ObjectInputStream(server.getInputStream());
+            LoggerUtil.INSTANCE.info("Client connected");
+            // Use CompletableFuture to run listenToServer() in a separate thread
+            CompletableFuture.runAsync(this::listenToServer);
+            sendClientName(myUser.getClientName());// sync follow-up data (handshake)
+        } catch (UnknownHostException e) {
+            e.printStackTrace();
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+        return isConnected();
+    }
+
+    /**
      * <p>
-     * Checks whether the input text contains the <i>connect</i> command
-     * followed by a valid IP address and port or localhost and port.
+     * Check if the string contains the <i>connect</i> command
+     * followed by an IP address and port or localhost and port.
      * </p>
      * <p>
      * Example format: 123.123.123.123:3000
@@ -114,8 +185,8 @@ public enum Client {
      * </p>
      * https://www.w3schools.com/java/java_regex.asp
      * 
-     * @param text user input to evaluate
-     * @return true if the string represents a well-formed connection command
+     * @param text
+     * @return true if the text is a valid connection command
      */
     private boolean isConnection(String text) {
         Matcher ipMatcher = ipAddressPattern.matcher(text);
@@ -124,19 +195,19 @@ public enum Client {
     }
 
     /**
-     * Central handler for user-entered commands.
+     * Controller for handling various text commands.
      * <p>
-     * Extend this with additional command handling as needed.
+     * Add more here as needed
      * </p>
      * 
-     * @param text full text entered by the user
-     * @return true if the input was recognized as a command or caused a command to run
-     * @throws IOException if sending data to the server fails
+     * @param text
+     * @return true if the text was a command or triggered a command
+     * @throws IOException
      */
     private boolean processClientCommand(String text) throws IOException {
         boolean wasCommand = false;
         if (text.startsWith(Constants.COMMAND_TRIGGER)) {
-            text = text.substring(1); // strip the leading '/'
+            text = text.substring(1); // remove the /
             // System.out.println("Checking command: " + text);
             if (isConnection("/" + text)) {
                 if (myUser.getClientName() == null || myUser.getClientName().isEmpty()) {
@@ -144,12 +215,12 @@ public enum Client {
                             TextFX.colorize("Please set your name via /name <name> before connecting", Color.RED));
                     return true;
                 }
-                // collapse repeated spaces into a single space
-                // split on the space after "connect" to isolate host and port
-                // then split on ":" to separate host (index 0) and port (index 1)
+                // replaces multiple spaces with a single space
+                // splits on the space after connect (gives us host and port)
+                // splits on : to get host as index 0 and port as index 1
                 String[] parts = text.trim().replaceAll(" +", " ").split(" ")[1].split(":");
                 connect(parts[0].trim(), Integer.parseInt(parts[1].trim()));
-                sendClientName(myUser.getClientName()); // send follow-up identification (handshake)
+                sendClientName(myUser.getClientName());// sync follow-up data (handshake)
                 wasCommand = true;
             } else if (text.startsWith(Command.NAME.command)) {
                 text = text.replace(Command.NAME.command, "").trim();
@@ -158,11 +229,11 @@ public enum Client {
                             .warning(TextFX.colorize("This command requires a name as an argument", Color.RED));
                     return true;
                 }
-                myUser.setClientName(text); // temporary value until server confirms
+                myUser.setClientName(text);// temporary until we get a response from the server
                 LoggerUtil.INSTANCE.info(TextFX.colorize(String.format("Name set to %s", myUser.getClientName()),
                         Color.YELLOW));
                 wasCommand = true;
-            } else if (text.trim().equalsIgnoreCase(Command.LIST_USERS.command)) {
+            } else if (text.equalsIgnoreCase(Command.LIST_USERS.command)) {
                 String message = TextFX.colorize("Known clients:\n", Color.CYAN);
                 LoggerUtil.INSTANCE.info(TextFX.colorize("Known clients:", Color.CYAN));
                 message += String.join("\n", knownClients.values().stream()
@@ -174,10 +245,10 @@ public enum Client {
                         .toList());
                 LoggerUtil.INSTANCE.info(message);
                 wasCommand = true;
-            } else if (Command.QUIT.command.equalsIgnoreCase(text.trim())) {
+            } else if (Command.QUIT.command.equalsIgnoreCase(text)) {
                 close();
                 wasCommand = true;
-            } else if (Command.DISCONNECT.command.equalsIgnoreCase(text.trim())) {
+            } else if (Command.DISCONNECT.command.equalsIgnoreCase(text)) {
                 sendDisconnect();
                 wasCommand = true;
             } else if (text.startsWith(Command.REVERSE.command)) {
@@ -203,7 +274,8 @@ public enum Client {
                 sendRoomAction(text, RoomAction.JOIN);
                 wasCommand = true;
             } else if (text.startsWith(Command.LEAVE_ROOM.command) || text.startsWith("leave")) {
-                // Note: Handles /leave, /leaveroom, and any command that begins with "/leave"
+                // Note: Accounts for /leave and /leaveroom variants (or anything beginning with
+                // /leave)
                 sendRoomAction(text, RoomAction.LEAVE);
                 wasCommand = true;
             } else if (text.startsWith(Command.LIST_ROOMS.command)) {
@@ -211,7 +283,7 @@ public enum Client {
 
                 sendRoomAction(text, RoomAction.LIST);
                 wasCommand = true;
-            } else if (text.trim().equalsIgnoreCase(Command.READY.command)) {
+            } else if (text.equalsIgnoreCase(Command.READY.command)) {
                 sendReady();
                 wasCommand = true;
             } else if (text.startsWith(Command.EXAMPLE_TURN.command)) {
@@ -228,7 +300,7 @@ public enum Client {
                 }
                 sendPick(text.trim());
                 wasCommand = true;
-            } else if (text.trim().equalsIgnoreCase(Command.SCOREBOARD.command)) {
+            } else if (text.equalsIgnoreCase(Command.SCOREBOARD.command)) {
                 sendScoreboardRequest();
                 wasCommand = true;
             }
@@ -236,25 +308,27 @@ public enum Client {
         return wasCommand;
     }
 
-    // Begin Send*() helper methods
-    private void sendDoTurn(String text) throws IOException {
-        // NOTE: currently reusing ReadyPayload since it already contains the fields we need
-        // A dedicated turn payload could include more details specific to your project
+    // Start Send*() methods
+    public void sendDoTurn(String text) throws IOException {
+        // NOTE for now using ReadyPayload as it has the necessary properties
+        // An actual turn may include other data for your project
         ReadyPayload rp = new ReadyPayload();
         rp.setPayloadType(PayloadType.TURN);
-        rp.setReady(true); // <- technically unnecessary since payload type is the main trigger
+        rp.setReady(true); // <- technically not needed as we'll use the payload type as a trigger
         rp.setMessage(text);
         sendToServer(rp);
     }
 
-    // rk975 - 11/26/25
-    // Sends the player's choice of "r", "p", or "s" to the server.
-    //  Validates input before sending.
-    // Throws IOException if sending fails.
-    private void sendPick(String text) throws IOException {
+    public void sendPick(String text) throws IOException {
         String c = text.toLowerCase();
-        if (!(c.equals("r") || c.equals("p") || c.equals("s"))) {
-            LoggerUtil.INSTANCE.warning(TextFX.colorize("Invalid pick. Use r, p, or s", Color.RED));
+        // accept full words as well
+        if (c.equals("rock")) c = "r";
+        if (c.equals("paper")) c = "p";
+        if (c.equals("scissors")) c = "s";
+        if (c.equals("lizard")) c = "l";
+        if (c.equals("spock")) c = "k"; // k for spocK
+        if (!(c.equals("r") || c.equals("p") || c.equals("s") || c.equals("l") || c.equals("k"))) {
+            LoggerUtil.INSTANCE.warning(TextFX.colorize("Invalid pick. Use r,p,s or extras if enabled", Color.RED));
             return;
         }
         PickPayload pp = new PickPayload();
@@ -269,27 +343,51 @@ public enum Client {
         sendToServer(p);
     }
 
+    public void sendGameSettings(int optionCount, boolean cooldown) throws IOException {
+        GameSettingsPayload gp = new GameSettingsPayload();
+        gp.setPayloadType(PayloadType.GAME_SETTINGS);
+        gp.setOptionCount(optionCount);
+        gp.setCooldownEnabled(cooldown);
+        sendToServer(gp);
+    }
+
+    public void sendAway(boolean away) throws IOException {
+        PlayerStatePayload pp = new PlayerStatePayload();
+        pp.setPayloadType(PayloadType.PLAYER_STATE);
+        pp.setClientId(myUser.getClientId());
+        pp.setAway(away);
+        sendToServer(pp);
+    }
+
+    public void sendSpectator(boolean spectator) throws IOException {
+        PlayerStatePayload pp = new PlayerStatePayload();
+        pp.setPayloadType(PayloadType.PLAYER_STATE);
+        pp.setClientId(myUser.getClientId());
+        pp.setSpectator(spectator);
+        sendToServer(pp);
+    }
+
     /**
-     * Informs the server that this client is ready.
-     * On the server side, this could also be interpreted as a toggle
-     * depending on implementation.
+     * Sends the client's intent to be ready.
+     * Can also be used to toggle the ready state if coded on the server-side
      * 
-     * @throws IOException if sending the payload fails
+     * @throws IOException
      */
-    private void sendReady() throws IOException {
+    public void sendReady() throws IOException {
         ReadyPayload rp = new ReadyPayload();
-        // rp.setReady(true); // <- not required if server only checks payload type
+        // rp.setReady(true); // <- technically not needed as we'll use the payload type
+        // as a trigger
         sendToServer(rp);
     }
 
     /**
-     * Sends an action related to room management to the server.
+     * Sends a room action to the server
      * 
-     * @param roomName   the name of the room being targeted
-     * @param roomAction type of room operation (join, leave, create, list)
-     * @throws IOException if there is a problem communicating with the server
+     * @param roomName
+     * @param roomAction (join, leave, create)
+     * @throws IOException
      */
-    private void sendRoomAction(String roomName, RoomAction roomAction) throws IOException {
+    public void sendRoomAction(String roomName, RoomAction roomAction) throws IOException {
         Payload payload = new Payload();
         payload.setMessage(roomName);
         switch (roomAction) {
@@ -313,10 +411,10 @@ public enum Client {
     }
 
     /**
-     * Sends a "reverse message" request to the server.
+     * Sends a reverse message action to the server
      * 
-     * @param message the original string to be reversed or processed
-     * @throws IOException if sending fails
+     * @param message
+     * @throws IOException
      */
     private void sendReverse(String message) throws IOException {
         Payload payload = new Payload();
@@ -327,23 +425,27 @@ public enum Client {
     }
 
     /**
-     * Notifies the server that this client wishes to disconnect.
+     * Sends a disconnect action to the server
      * 
-     * @throws IOException if sending fails
+     * @throws IOException
      */
-    private void sendDisconnect() throws IOException {
+    public void sendDisconnect() throws IOException {
         Payload payload = new Payload();
         payload.setPayloadType(PayloadType.DISCONNECT);
         sendToServer(payload);
     }
 
     /**
-     * Sends a general chat/message payload to the server.
+     * Sends a message to the server
      * 
-     * @param message content to send to other clients via the server
-     * @throws IOException if writing to the output stream fails
+     * @param message
+     * @throws IOException
      */
-    private void sendMessage(String message) throws IOException {
+    public void sendMessage(String message) throws IOException {
+        // added in Milestone 3 to persist usage of slash commands
+        if (processClientCommand(message)) {
+            return; // if the message was a command, don't send it to the server
+        }
         Payload payload = new Payload();
         payload.setMessage(message);
         payload.setPayloadType(PayloadType.MESSAGE);
@@ -351,11 +453,10 @@ public enum Client {
     }
 
     /**
-     * Sends the user's preferred display name to the server so it knows
-     * how to refer to this client.
+     * Sends the client's name to the server (what the user desires to be called)
      * 
-     * @param name desired display name
-     * @throws IOException if the payload cannot be sent
+     * @param name
+     * @throws IOException
      */
     private void sendClientName(String name) throws IOException {
         ConnectionPayload payload = new ConnectionPayload();
@@ -367,32 +468,31 @@ public enum Client {
     private void sendToServer(Payload payload) throws IOException {
         if (isConnected()) {
             out.writeObject(payload);
-            out.flush(); // ensures data is pushed out immediately
+            out.flush(); // good practice to ensure data is written out immediately
         } else {
             LoggerUtil.INSTANCE.warning(
                     "Not connected to server (hint: type `/connect host:port` without the quotes and replace host/port with the necessary info)");
         }
     }
-    // End Send*() helper methods
+    // End Send*() methods
 
     public void start() throws IOException {
         LoggerUtil.INSTANCE.info("Client starting");
 
-        // Run listenToInput() on a separate thread using CompletableFuture
+        // Use CompletableFuture to run listenToInput() in a separate thread
         CompletableFuture<Void> inputFuture = CompletableFuture.runAsync(this::listenToInput);
 
-        // Block until the input-handling thread finishes to allow a clean shutdown
+        // Wait for inputFuture to complete to ensure proper termination
         inputFuture.join();
     }
 
     /**
-     * Continuously listens for incoming data from the server and
-     * dispatches it to the appropriate handler.
+     * Listens for messages from the server
      */
     private void listenToServer() {
         try {
             while (isRunning && isConnected()) {
-                Payload fromServer = (Payload) in.readObject(); // blocking read until an object arrives
+                Payload fromServer = (Payload) in.readObject(); // blocking read
                 if (fromServer != null) {
                     processPayload(fromServer);
 
@@ -419,7 +519,7 @@ public enum Client {
 
     private void processPayload(Payload payload) {
         switch (payload.getPayloadType()) {
-            case CLIENT_CONNECT: // unused
+            case CLIENT_CONNECT:// unused
                 break;
             case CLIENT_ID:
                 processClientData(payload);
@@ -454,7 +554,7 @@ public enum Client {
                 processReadyStatus(payload, true);
                 break;
             case PayloadType.RESET_READY:
-                // no payload body required; this acts purely as a reset signal
+                // note no data necessary as this is just a trigger
                 processResetReady();
                 break;
             case PayloadType.PHASE:
@@ -465,11 +565,20 @@ public enum Client {
                 processTurn(payload);
                 break;
             case PayloadType.RESET_TURN:
-                // no extra data required; this is purely a reset trigger
+                // note no data necessary as this is just a trigger
                 processResetTurn();
+                break;
+            case PayloadType.TIME:
+                processCurrentTimer(payload);
                 break;
             case PayloadType.POINTS:
                 processPoints(payload);
+                break;
+            case PayloadType.GAME_SETTINGS:
+                processGameSettings(payload);
+                break;
+            case PayloadType.PLAYER_STATE:
+                processPlayerState(payload);
                 break;
             default:
                 LoggerUtil.INSTANCE.warning(TextFX.colorize("Unhandled payload type", Color.YELLOW));
@@ -478,14 +587,62 @@ public enum Client {
         }
     }
 
-    // Begin process*() handler methods
+    public String getDisplayNameFromId(long id) {
+        LoggerUtil.INSTANCE.info(String.format("Getting display name for client id %s", id));
+        if (id == Constants.DEFAULT_CLIENT_ID) {
+            return String.format("Room[%s]", currentRoom);
+        }
+        if (knownClients.containsKey(id)) {
+            return knownClients.get(id).getDisplayName();
+        }
+        // fallback for room changing when knownClients is cleared
+        if (isMyClientId(id)) {
+            return myUser.getDisplayName();
+        }
+        return "[Unknown]";
+    }
+
+    /**
+     * Passes the event to the callback consumer if it matches the type.
+     * This is a generic method that allows for type-safe handling of events.
+     * 
+     * @param <T>
+     * @param type
+     * @param consumer
+     */
+    private <T> void passToUICallback(Class<T> type, java.util.function.Consumer<T> consumer) {
+        try {
+            for (IClientEvents event : events) {
+                if (type.isInstance(event)) {
+                    consumer.accept(type.cast(event));
+                }
+            }
+        } catch (Exception e) {
+            LoggerUtil.INSTANCE.severe("Error passing to callback", e);
+            // e.printStackTrace();
+        }
+    }
+
+    // Start process*() methods
+    private void processCurrentTimer(Payload payload) {
+        if (!(payload instanceof TimerPayload)) {
+            error("Invalid payload subclass for processCurrentTimer");
+            return;
+        }
+        TimerPayload timerPayload = (TimerPayload) payload;
+
+        passToUICallback(ITimeEvents.class, e -> e.onTimerUpdate(timerPayload.getTimerType(), timerPayload.getTime()));
+    }
+
     private void processResetTurn() {
         knownClients.values().forEach(cp -> cp.setTookTurn(false));
         System.out.println("Turn status reset for everyone");
+
+        passToUICallback(ITurnEvent.class, e -> e.onTookTurn(Constants.DEFAULT_CLIENT_ID, false));
     }
 
     private void processTurn(Payload payload) {
-        // Note: Currently assuming ReadyPayload (may be replaced with a custom payload later)
+        // Note: For now assuming ReadyPayload (this may be changed later)
         if (!(payload instanceof ReadyPayload)) {
             error("Invalid payload subclass for processTurn");
             return;
@@ -502,18 +659,40 @@ public enum Client {
             String message = String.format("%s %s their turn", cp.getDisplayName(),
                     cp.didTakeTurn() ? "took" : "reset");
             LoggerUtil.INSTANCE.info(message);
+            // reusable method for client-side feedback
+            clientSideGameEvent(String.format("%s finished their turn",
+                    cp.getDisplayName()));
+            // original
+            /*
+             * passToUICallback(IMessageEvents.class,
+             * e -> e.onMessageReceive(Constants.GAME_EVENT_CHANNEL,
+             * String.format("%s finished their turn",
+             * cp.getDisplayName())));
+             */
         }
+
+        passToUICallback(ITurnEvent.class, e -> e.onTookTurn(cp.getClientId(), cp.didTakeTurn()));
 
     }
 
     private void processPhase(Payload payload) {
         currentPhase = Enum.valueOf(Phase.class, payload.getMessage());
         System.out.println(TextFX.colorize("Current phase is " + currentPhase.name(), Color.YELLOW));
+
+        passToUICallback(IPhaseEvent.class, e -> e.onReceivePhase(currentPhase));
     }
 
     private void processResetReady() {
-        knownClients.values().forEach(cp -> cp.setReady(false));
+        knownClients.values().forEach(cp -> {
+            cp.setReady(false);
+            cp.setTookTurn(false);
+            cp.setPoints(-1);
+        });
         System.out.println("Ready status reset for everyone");
+
+        passToUICallback(IReadyEvent.class, e -> e.onReceiveReady(Constants.DEFAULT_CLIENT_ID, false, true));
+        passToUICallback(ITurnEvent.class, e -> e.onTookTurn(Constants.DEFAULT_CLIENT_ID, false));
+        passToUICallback(IPointsEvent.class, e -> e.onPointsUpdate(Constants.DEFAULT_CLIENT_ID, -1));
     }
 
     private void processReadyStatus(Payload payload, boolean isQuiet) {
@@ -534,6 +713,8 @@ public enum Client {
                     String.format("%s is %s", cp.getDisplayName(),
                             rp.isReady() ? "ready" : "not ready"));
         }
+
+        passToUICallback(IReadyEvent.class, e -> e.onReceiveReady(cp.getClientId(), cp.isReady(), isQuiet));
     }
 
     private void processRoomsList(Payload payload) {
@@ -543,7 +724,10 @@ public enum Client {
         }
         RoomResultPayload rrp = (RoomResultPayload) payload;
         List<String> rooms = rrp.getRooms();
-        if (rooms == null || rooms.size() == 0) {
+        // send to UI before steps below
+        passToUICallback(IRoomEvents.class, e -> e.onReceiveRoomList(rooms, rrp.getMessage()));
+
+        if (rooms == null || rooms.isEmpty()) {
             LoggerUtil.INSTANCE.warning(
                     TextFX.colorize("No rooms found matching your query",
                             Color.RED));
@@ -560,13 +744,16 @@ public enum Client {
 
         }
         myUser.setClientId(payload.getClientId());
-        myUser.setClientName(((ConnectionPayload) payload).getClientName()); // confirmation from Server
+        myUser.setClientName(((ConnectionPayload) payload).getClientName());// confirmation from Server
         knownClients.put(myUser.getClientId(), myUser);
         LoggerUtil.INSTANCE.info(TextFX.colorize("Connected", Color.GREEN));
+
+        passToUICallback(IConnectionEvents.class, e -> e.onReceiveClientId(myUser.getClientId()));
     }
 
     private void processDisconnect(Payload payload) {
-        if (payload.getClientId() == myUser.getClientId()) {
+        passToUICallback(IConnectionEvents.class, e -> e.onClientDisconnect(payload.getClientId()));
+        if (isMyClientId(payload.getClientId())) {
             knownClients.clear();
             myUser.reset();
             LoggerUtil.INSTANCE.info(TextFX.colorize("You disconnected", Color.RED));
@@ -587,16 +774,28 @@ public enum Client {
             return;
         }
         ConnectionPayload connectionPayload = (ConnectionPayload) payload;
-        // use DEFAULT_CLIENT_ID to clear knownClients (typically on disconnect or when changing rooms)
+        // use DEFAULT_CLIENT_ID to clear knownClients (mostly for disconnect and room
+        // transitions)
         if (connectionPayload.getClientId() == Constants.DEFAULT_CLIENT_ID) {
             knownClients.clear();
+
+            passToUICallback(IRoomEvents.class, e -> e.onRoomAction(
+                    Constants.DEFAULT_CLIENT_ID,
+                    connectionPayload.getMessage(),
+                    false,
+                    true));
             return;
         }
         switch (connectionPayload.getPayloadType()) {
 
             case ROOM_LEAVE:
-                // remove departing user from the tracking map
+                // remove from map
                 if (knownClients.containsKey(connectionPayload.getClientId())) {
+                    passToUICallback(IRoomEvents.class, e -> e.onRoomAction(
+                            connectionPayload.getClientId(),
+                            connectionPayload.getMessage(),
+                            false,
+                            false));
                     knownClients.remove(connectionPayload.getClientId());
                 }
                 if (connectionPayload.getMessage() != null) {
@@ -605,18 +804,25 @@ public enum Client {
 
                 break;
             case ROOM_JOIN:
-                if (connectionPayload.getMessage() != null) {
-                    LoggerUtil.INSTANCE.info(TextFX.colorize(connectionPayload.getMessage(), Color.GREEN));
+                if (connectionPayload.getMessage() != null && isMyClientId(connectionPayload.getClientId())) {
+                    currentRoom = connectionPayload.getMessage();
+                    LoggerUtil.INSTANCE.info(TextFX.colorize(String.format("Joined %s", currentRoom), Color.GREEN));
+
                 }
-                // fall-through to keep the client list synchronized
+                // cascade to manage knownClients
             case SYNC_CLIENT:
-                // add or update client information in the map
+                // add to map
                 if (!knownClients.containsKey(connectionPayload.getClientId())) {
                     User user = new User();
                     user.setClientId(connectionPayload.getClientId());
                     user.setClientName(connectionPayload.getClientName());
                     knownClients.put(connectionPayload.getClientId(), user);
                 }
+                passToUICallback(IRoomEvents.class, e -> e.onRoomAction(
+                        connectionPayload.getClientId(),
+                        connectionPayload.getMessage(),
+                        true,
+                        connectionPayload.getPayloadType() == PayloadType.SYNC_CLIENT));
                 break;
             default:
                 error("Invalid payload type for processRoomAction");
@@ -624,14 +830,52 @@ public enum Client {
         }
     }
 
+    private void processGameSettings(Payload payload) {
+        if (!(payload instanceof GameSettingsPayload)) {
+            error("Invalid payload subclass for processGameSettings");
+            return;
+        }
+        GameSettingsPayload gp = (GameSettingsPayload) payload;
+        this.currentOptionCount = gp.getOptionCount();
+        this.cooldownEnabled = gp.isCooldownEnabled();
+        this.creatorClientId = gp.getCreatorClientId();
+        passToUICallback(Project.Client.Interfaces.IGameSettingsEvent.class, e -> e.onGameSettings(currentOptionCount, cooldownEnabled));
+    }
+
+    private void processPlayerState(Payload payload) {
+        if (!(payload instanceof PlayerStatePayload)) {
+            error("Invalid payload subclass for processPlayerState");
+            return;
+        }
+        PlayerStatePayload pp = (PlayerStatePayload) payload;
+        long id = pp.getClientId();
+        if (!knownClients.containsKey(id)) {
+            User u = new User();
+            u.setClientId(id);
+            knownClients.put(id, u);
+        }
+        User u = knownClients.get(id);
+        u.setPoints(pp.getPoints());
+        u.setEliminated(pp.isEliminated());
+        u.setAway(pp.isAway());
+        u.setSpectator(pp.isSpectator());
+        passToUICallback(Project.Client.Interfaces.IPlayerStateEvent.class,
+                e -> e.onPlayerStateUpdate(id, pp.getPoints(), pp.isEliminated(), pp.isAway(), pp.isSpectator()));
+    }
+
     private void processMessage(Payload payload) {
         LoggerUtil.INSTANCE.info(TextFX.colorize(payload.getMessage(), Color.BLUE));
+
+        passToUICallback(IMessageEvents.class, e -> e.onMessageReceive(payload.getClientId(),
+                payload.getMessage()));
     }
 
     private void processReverse(Payload payload) {
         LoggerUtil.INSTANCE.info(TextFX.colorize(payload.getMessage(), Color.PURPLE));
+
+        passToUICallback(IMessageEvents.class, e -> e.onMessageReceive(payload.getClientId(),
+                payload.getMessage()));
     }
-    
     private void processPoints(Payload payload) {
         if (!(payload instanceof PointsPayload)) {
             error("Invalid payload subclass for processPoints");
@@ -641,7 +885,7 @@ public enum Client {
         long id = pp.getClientId();
         int pts = pp.getPoints();
         if (!knownClients.containsKey(id)) {
-            // create a placeholder entry if the user isn't already tracked
+            // create a placeholder user entry
             User user = new User();
             user.setClientId(id);
             knownClients.put(id, user);
@@ -649,17 +893,19 @@ public enum Client {
         User u = knownClients.get(id);
         u.setPoints(pts);
         System.out.println(String.format("%s has %d points", u.getDisplayName(), pts));
+        // notify UI listeners so the user list and other components update
+        passToUICallback(IPointsEvent.class, e -> e.onPointsUpdate(id, pts));
     }
-    // End process*() handler methods
+    // End process*() methods
 
     /**
-     * Watches for keyboard input from the local user and forwards
-     * it either as commands or chat messages to the server.
+     * Listens for keyboard input from the user
      */
+    @Deprecated
     private void listenToInput() {
         try (Scanner si = new Scanner(System.in)) {
-            LoggerUtil.INSTANCE.info("Waiting for input"); // placed here to avoid repeated log spam
-            while (isRunning) { // continue loop until isRunning is flipped to false
+            LoggerUtil.INSTANCE.info("Waiting for input"); // moved here to avoid console spam
+            while (isRunning) { // Run until isRunning is false
                 String userInput = si.nextLine();
                 if (!processClientCommand(userInput)) {
                     sendMessage(userInput);
@@ -673,17 +919,17 @@ public enum Client {
     }
 
     /**
-     * Shuts down the client and cleans up all related resources.
+     * Closes the client connection and associated resources
      */
     private void close() {
         isRunning = false;
         closeServerConnection();
         LoggerUtil.INSTANCE.info("Client terminated");
-        // System.exit(0); // Optionally terminate the entire application
+        // System.exit(0); // Terminate the application
     }
 
     /**
-     * Closes the connection to the server along with input/output streams.
+     * Closes the server connection and associated resources
      */
     private void closeServerConnection() {
         try {
@@ -714,6 +960,7 @@ public enum Client {
         }
     }
 
+    @Deprecated
     public static void main(String[] args) {
         Client client = Client.INSTANCE;
         try {
