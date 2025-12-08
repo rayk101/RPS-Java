@@ -225,6 +225,7 @@ public class GameRoom extends BaseGameRoom {
     protected void onRoundEnd() {
         LoggerUtil.INSTANCE.info("onRoundEnd() start");
         resetRoundTimer(); // reset timer if round ended without the time expiring
+        resetTurnTimer(); // reset turn timer in case round ended early (all players picked)
         processRoundResults(); // handle battle results and elimination
         LoggerUtil.INSTANCE.info("onRoundEnd() end");
         if (round >= 3) {
@@ -648,8 +649,9 @@ public class GameRoom extends BaseGameRoom {
 
     private void processRoundResults() {
         // eliminate non-pickers ONLY if it's during a round
+        // Skip spectators and away users - they don't pick and shouldn't be eliminated
         clientsInRoom.values().forEach(sp -> {
-                if (!sp.user.isEliminated() && sp.user.getChoice() == null) {
+                if (!sp.user.isEliminated() && !sp.user.isSpectator() && !sp.user.isAway() && sp.user.getChoice() == null) {
                 sp.user.setEliminated(true);
                 // announce non-picker elimination to Game Events panel
                 clientsInRoom.values().forEach(st -> st.sendGameEvent(String.format("%s did not pick and is eliminated", sp.getDisplayName())));
