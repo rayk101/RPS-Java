@@ -1,6 +1,6 @@
 package Project.Common;
 
-enum TimerType {
+public enum TimerType {
     READY, ROUND, TURN
 }
 
