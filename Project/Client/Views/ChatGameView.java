@@ -19,6 +19,10 @@ import Project.Common.Constants;
 import Project.Common.Phase;
 
 public class ChatGameView extends JPanel implements IRoomEvents, IPhaseEvent {
+    // Custom color scheme - Dark Teal Theme
+    private static final Color BACKGROUND_DARK = new Color(28, 38, 43);
+    private static final Color PANEL_BG = new Color(38, 50, 56);
+    
     private final ChatView chatView;
     private final GameView gameView;
     private final JSplitPane splitPane;
@@ -26,6 +30,7 @@ public class ChatGameView extends JPanel implements IRoomEvents, IPhaseEvent {
     public ChatGameView(ICardControls controls) {
         super();
         setLayout(new BoxLayout(this, BoxLayout.X_AXIS));
+        setBackground(BACKGROUND_DARK);
 
         // Set panel name and register for card navigation
         setName(CardViewName.CHAT_GAME_SCREEN.name());
@@ -34,15 +39,17 @@ public class ChatGameView extends JPanel implements IRoomEvents, IPhaseEvent {
         chatView = new ChatView(controls);
         gameView = new GameView(controls);
         gameView.setVisible(false);
-        gameView.setBackground(Color.BLUE);
-        chatView.setBackground(Color.GRAY);
+        gameView.setBackground(BACKGROUND_DARK);
+        chatView.setBackground(PANEL_BG);
 
         // JSplitPane is always present; we toggle gameView visibility for mode
         // switching
         splitPane = new JSplitPane(JSplitPane.HORIZONTAL_SPLIT, gameView, chatView);
+        splitPane.setBackground(BACKGROUND_DARK);
         splitPane.setResizeWeight(0.6); // 60% for game, 40% for chat when both are visible
         splitPane.setOneTouchExpandable(false);
         splitPane.setEnabled(false); // Prevent user from moving the divider
+        splitPane.setDividerSize(3);
 
         add(splitPane, BorderLayout.CENTER);
         gameView.addComponentListener(new ComponentAdapter() {

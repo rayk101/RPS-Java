@@ -10,38 +10,61 @@ import Project.Common.Constants;
 import Project.Common.LoggerUtil;
 import java.awt.BorderLayout;
 import java.awt.Color;
+import java.awt.Font;
 import java.awt.GridBagConstraints;
 import java.awt.GridBagLayout;
 import java.awt.Insets;
 import java.util.HashMap;
 import java.util.List;
+import javax.swing.BorderFactory;
 import javax.swing.Box;
+import javax.swing.JLabel;
 import javax.swing.JPanel;
 import javax.swing.JScrollPane;
 import javax.swing.ScrollPaneConstants;
 import javax.swing.SwingUtilities;
-import javax.swing.border.EmptyBorder;
 
 /**
  * UserListView represents a UI component that displays a list of users.
  */
 public class UserListView extends JPanel
     implements IConnectionEvents, IRoomEvents, IReadyEvent, IPointsEvent, ITurnEvent, Project.Client.Interfaces.IPlayerStateEvent, Project.Client.Interfaces.IPhaseEvent {
+    // Custom color scheme - Dark Teal Theme
+    private static final Color BACKGROUND_DARK = new Color(28, 38, 43);
+    private static final Color PANEL_BG = new Color(38, 50, 56);
+    private static final Color ACCENT_TEAL = new Color(0, 188, 212);
+    private static final Color TEXT_LIGHT = new Color(236, 239, 241);
+    private static final Color READY_COLOR = new Color(78, 205, 196);
+    
     private final JPanel userListArea;
     private final GridBagConstraints lastConstraints; // Keep track of the last constraints for the glue
     private final HashMap<Long, UserListItem> userItemsMap; // Maintain a map of client IDs to UserListItems
 
     public UserListView() {
-        super(new BorderLayout(10, 10));
+        super(new BorderLayout(5, 5));
+        setBackground(BACKGROUND_DARK);
+        setBorder(BorderFactory.createCompoundBorder(
+            BorderFactory.createMatteBorder(0, 1, 0, 0, ACCENT_TEAL),
+            BorderFactory.createEmptyBorder(5, 5, 5, 5)
+        ));
         userItemsMap = new HashMap<>();
 
+        // Header label
+        JLabel headerLabel = new JLabel("Players");
+        headerLabel.setFont(new Font("SansSerif", Font.BOLD, 12));
+        headerLabel.setForeground(ACCENT_TEAL);
+        headerLabel.setBorder(BorderFactory.createEmptyBorder(5, 5, 8, 5));
+        this.add(headerLabel, BorderLayout.NORTH);
+
         JPanel content = new JPanel(new GridBagLayout());
+        content.setBackground(PANEL_BG);
         userListArea = content;
 
         JScrollPane scroll = new JScrollPane(userListArea);
         scroll.setHorizontalScrollBarPolicy(ScrollPaneConstants.HORIZONTAL_SCROLLBAR_NEVER);
         scroll.setVerticalScrollBarPolicy(ScrollPaneConstants.VERTICAL_SCROLLBAR_AS_NEEDED);
-        scroll.setBorder(new EmptyBorder(0, 0, 0, 0));
+        scroll.setBorder(BorderFactory.createEmptyBorder());
+        scroll.getViewport().setBackground(PANEL_BG);
         this.add(scroll, BorderLayout.CENTER);
 
         // Add vertical glue to push items to the top
@@ -240,7 +263,7 @@ public class UserListView extends JPanel
             SwingUtilities.invokeLater(() -> {
                 try {
                     LoggerUtil.INSTANCE.info("Setting user item ready for id " + clientId + " to " + isReady);
-                    userItemsMap.get(clientId).setTurn(isReady, Color.GRAY);
+                    userItemsMap.get(clientId).setTurn(isReady, READY_COLOR);
                 } catch (Exception e) {
                     LoggerUtil.INSTANCE.severe("Error setting user item", e);
                 }

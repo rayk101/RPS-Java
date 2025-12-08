@@ -41,23 +41,36 @@ import Project.Common.LoggerUtil;
  * Uses new view registration and naming conventions.
  */
 public class ChatView extends JPanel implements IMessageEvents, IConnectionEvents, IRoomEvents {
+    // Custom color scheme - Dark Teal Theme
+    private static final Color BACKGROUND_DARK = new Color(28, 38, 43);
+    private static final Color PANEL_BG = new Color(38, 50, 56);
+    private static final Color ACCENT_TEAL = new Color(0, 188, 212);
+    private static final Color TEXT_LIGHT = new Color(236, 239, 241);
+    private static final Color INPUT_BG = new Color(55, 71, 79);
+    
     private JPanel chatArea = new JPanel(new GridBagLayout());
     private UserListView userListView;
     private final float CHAT_SPLIT_PERCENT = 0.7f;
 
     public ChatView(ICardControls controls) {
-        super(new BorderLayout(10, 10));
+        super(new BorderLayout(5, 5));
+        setBackground(PANEL_BG);
 
         chatArea.setAlignmentY(Component.TOP_ALIGNMENT);
+        chatArea.setBackground(PANEL_BG);
+        
         JScrollPane scroll = new JScrollPane(chatArea);
         scroll.setHorizontalScrollBarPolicy(ScrollPaneConstants.HORIZONTAL_SCROLLBAR_NEVER);
         scroll.setVerticalScrollBarPolicy(ScrollPaneConstants.VERTICAL_SCROLLBAR_AS_NEEDED);
         scroll.setBorder(BorderFactory.createEmptyBorder());
+        scroll.getViewport().setBackground(PANEL_BG);
 
         userListView = new UserListView();
         JSplitPane splitPane = new JSplitPane(JSplitPane.HORIZONTAL_SPLIT, scroll, userListView);
+        splitPane.setBackground(BACKGROUND_DARK);
         splitPane.setResizeWeight(CHAT_SPLIT_PERCENT);
         splitPane.setDividerLocation(CHAT_SPLIT_PERCENT);
+        splitPane.setDividerSize(3);
         // Enforce splitPane split
         this.addComponentListener(new ComponentAdapter() {
             @Override
@@ -85,10 +98,30 @@ public class ChatView extends JPanel implements IMessageEvents, IConnectionEvent
 
         JPanel input = new JPanel();
         input.setLayout(new BoxLayout(input, BoxLayout.X_AXIS));
-        input.setBorder(new EmptyBorder(5, 5, 5, 5));
+        input.setBackground(BACKGROUND_DARK);
+        input.setBorder(new EmptyBorder(8, 8, 8, 8));
+        
         JTextField textValue = new JTextField();
+        textValue.setBackground(INPUT_BG);
+        textValue.setForeground(TEXT_LIGHT);
+        textValue.setCaretColor(TEXT_LIGHT);
+        textValue.setBorder(BorderFactory.createCompoundBorder(
+            BorderFactory.createLineBorder(ACCENT_TEAL, 1),
+            BorderFactory.createEmptyBorder(8, 10, 8, 10)
+        ));
+        textValue.setFont(new java.awt.Font("SansSerif", java.awt.Font.PLAIN, 13));
         input.add(textValue);
+        input.add(Box.createRigidArea(new Dimension(8, 0)));
+        
         JButton button = new JButton("Send");
+        button.setBackground(ACCENT_TEAL);
+        button.setForeground(Color.BLACK);
+        button.setFocusPainted(false);
+        button.setFont(new java.awt.Font("SansSerif", java.awt.Font.BOLD, 12));
+        button.setBorder(BorderFactory.createEmptyBorder(10, 20, 10, 20));
+        button.setCursor(new java.awt.Cursor(java.awt.Cursor.HAND_CURSOR));
+        button.setOpaque(true);
+        
         textValue.addActionListener(_ -> button.doClick()); // Enter key submits
         button.addActionListener(_ -> {
             SwingUtilities.invokeLater(() -> {
@@ -183,9 +216,9 @@ public class ChatView extends JPanel implements IMessageEvents, IConnectionEvent
             return;
         }
         String displayName = Client.INSTANCE.getDisplayNameFromId(clientId);
-        // added color to differentiate between room and user messages
-        String name = clientId == Constants.DEFAULT_CLIENT_ID ? "<font color=blue>%s</font>"
-                : "<font color=purple>%s</font>";
+        // Custom teal/coral color scheme for messages
+        String name = clientId == Constants.DEFAULT_CLIENT_ID ? "<font color='#00BCD4'>%s</font>"  // Teal for system
+                : "<font color='#FF6F61'>%s</font>";  // Coral for users
         name = String.format(name, displayName);
         addText(String.format("%s: %s", name, message));
     }
@@ -213,11 +246,11 @@ public class ChatView extends JPanel implements IMessageEvents, IConnectionEvent
         if (!isQuiet) {
             String displayName = Client.INSTANCE.getDisplayNameFromId(clientId);
             boolean isMe = Client.INSTANCE.isMyClientId(clientId);
-            // Example 1: Client generated join/leave message (see Room.java for Example 2)
-            String message = String.format("<font color=blue>*%s %s the Room %s*</font>",
+            // Custom teal color for room events
+            String message = String.format("<font color='#00BCD4'>* %s %s the Room %s *</font>",
                     /* 1st %s */ isMe ? "You" : displayName,
                     /* 2nd %s */ isJoin ? "joined" : "left",
-                    /* 3rd %s */ roomName == null ? "" : roomName); // added handling of null after the demo video
+                    /* 3rd %s */ roomName == null ? "" : roomName);
             addText(message);
         }
     }

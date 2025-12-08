@@ -2,6 +2,7 @@ package Project.Client.Views;
 
 import java.awt.BorderLayout;
 import java.awt.CardLayout;
+import java.awt.Color;
 import java.awt.event.ComponentAdapter;
 import java.awt.event.ComponentEvent;
 
@@ -15,6 +16,9 @@ import Project.Client.Interfaces.IPhaseEvent;
 import Project.Common.Phase;
 
 public class GameView extends JPanel implements IPhaseEvent {
+    // Custom color scheme - Dark Teal Theme
+    private static final Color BACKGROUND_DARK = new Color(28, 38, 43);
+    
     private PlayView playView;
     private CardLayout cardLayout;
     private static final String READY_PANEL = "READY";
@@ -22,8 +26,10 @@ public class GameView extends JPanel implements IPhaseEvent {
 
     public GameView(ICardControls controls) {
         super(new BorderLayout());
+        setBackground(BACKGROUND_DARK);
 
         JPanel gameContainer = new JPanel(new CardLayout());
+        gameContainer.setBackground(BACKGROUND_DARK);
         cardLayout = (CardLayout) gameContainer.getLayout();
         this.setName(CardViewName.GAME_SCREEN.name());
         Client.INSTANCE.registerCallback(this);
@@ -37,7 +43,9 @@ public class GameView extends JPanel implements IPhaseEvent {
 
         GameEventsView gameEventsView = new GameEventsView();
         JSplitPane splitPane = new JSplitPane(JSplitPane.VERTICAL_SPLIT, gameContainer, gameEventsView);
+        splitPane.setBackground(BACKGROUND_DARK);
         splitPane.setResizeWeight(0.7);
+        splitPane.setDividerSize(3);
 
         playView.addComponentListener(new ComponentAdapter() {
             @Override
@@ -64,7 +72,9 @@ public class GameView extends JPanel implements IPhaseEvent {
 
         if (phase == Phase.READY) {
             cardLayout.show(playView.getParent(), READY_PANEL);
-        } else if (phase == Phase.IN_PROGRESS) {
+        } else if (phase == Phase.IN_PROGRESS || phase == Phase.CHOOSING) {
+            // Handle both IN_PROGRESS and CHOOSING phases to show play panel
+            // This ensures mid-game joiners who receive CHOOSING directly can see the buttons
             cardLayout.show(playView.getParent(), PLAY_PANEL);
         }
         // GameView can act as a manager and pass data to playView

@@ -11,6 +11,7 @@ import Project.Common.TimerType;
 import java.awt.BorderLayout;
 import java.awt.Color;
 import java.awt.Dimension;
+import java.awt.Font;
 import java.awt.GridBagConstraints;
 import java.awt.GridBagLayout;
 import java.awt.Insets;
@@ -25,28 +26,33 @@ import javax.swing.ScrollPaneConstants;
 import javax.swing.SwingUtilities;
 
 public class GameEventsView extends JPanel implements IPhaseEvent, IReadyEvent, IMessageEvents, ITimeEvents {
+    // Custom color scheme - Dark Teal Theme
+    private static final Color BACKGROUND_DARK = new Color(28, 38, 43);
+    private static final Color PANEL_BG = new Color(38, 50, 56);
+    private static final Color ACCENT_TEAL = new Color(0, 188, 212);
+    private static final Color TEXT_LIGHT = new Color(236, 239, 241);
+    private static final Color EVENT_BG = new Color(48, 63, 70);
+    
     private final JPanel content;
-    private final boolean debugMode = true; // Set this to false to disable debugging styling
     private final JLabel timerText;
     private final GridBagConstraints gbcGlue = new GridBagConstraints();
 
     public GameEventsView() {
-        super(new BorderLayout(10, 10));
+        super(new BorderLayout(5, 5));
+        setBackground(BACKGROUND_DARK);
+        setBorder(BorderFactory.createCompoundBorder(
+            BorderFactory.createMatteBorder(1, 0, 0, 0, ACCENT_TEAL),
+            BorderFactory.createEmptyBorder(5, 5, 5, 5)
+        ));
+        
         content = new JPanel(new GridBagLayout());
-
-        if (debugMode) {
-            content.setBorder(BorderFactory.createLineBorder(Color.RED));
-            content.setBackground(new Color(240, 240, 240));
-        }
+        content.setBackground(PANEL_BG);
 
         JScrollPane scroll = new JScrollPane(content);
         scroll.setHorizontalScrollBarPolicy(ScrollPaneConstants.HORIZONTAL_SCROLLBAR_NEVER);
         scroll.setVerticalScrollBarPolicy(ScrollPaneConstants.VERTICAL_SCROLLBAR_AS_NEEDED);
-        if (debugMode) {
-            scroll.setBorder(BorderFactory.createLineBorder(Color.GREEN));
-        } else {
-            scroll.setBorder(BorderFactory.createEmptyBorder());
-        }
+        scroll.setBorder(BorderFactory.createLineBorder(PANEL_BG, 1));
+        scroll.getViewport().setBackground(PANEL_BG);
         this.add(scroll, BorderLayout.CENTER);
 
         // Add vertical glue to push messages to the top
@@ -56,7 +62,11 @@ public class GameEventsView extends JPanel implements IPhaseEvent, IReadyEvent, 
         gbcGlue.fill = GridBagConstraints.BOTH;
         content.add(Box.createVerticalGlue(), gbcGlue);
 
+        // Timer label with styling
         timerText = new JLabel();
+        timerText.setFont(new Font("Monospaced", Font.BOLD, 14));
+        timerText.setForeground(ACCENT_TEAL);
+        timerText.setBorder(BorderFactory.createEmptyBorder(3, 5, 3, 5));
         this.add(timerText, BorderLayout.NORTH);
         timerText.setVisible(false);
         Client.INSTANCE.registerCallback(this);
@@ -66,13 +76,14 @@ public class GameEventsView extends JPanel implements IPhaseEvent, IReadyEvent, 
         SwingUtilities.invokeLater(() -> {
             JEditorPane textContainer = new JEditorPane("text/plain", text);
             textContainer.setEditable(false);
-            if (debugMode) {
-                textContainer.setBorder(BorderFactory.createLineBorder(Color.BLUE));
-                textContainer.setBackground(new Color(255, 255, 200));
-            } else {
-                textContainer.setBorder(BorderFactory.createEmptyBorder());
-                textContainer.setBackground(new Color(0, 0, 0, 0));
-            }
+            textContainer.setFont(new Font("SansSerif", Font.PLAIN, 12));
+            textContainer.setForeground(TEXT_LIGHT);
+            textContainer.setBackground(EVENT_BG);
+            textContainer.setBorder(BorderFactory.createCompoundBorder(
+                BorderFactory.createMatteBorder(0, 3, 0, 0, ACCENT_TEAL),
+                BorderFactory.createEmptyBorder(4, 8, 4, 8)
+            ));
+            textContainer.setOpaque(true);
             textContainer.setText(text);
             int width = content.getWidth() > 0 ? content.getWidth() : 200;
             Dimension preferredSize = textContainer.getPreferredSize();
@@ -87,7 +98,7 @@ public class GameEventsView extends JPanel implements IPhaseEvent, IReadyEvent, 
             gbc.gridy = content.getComponentCount() - 1;
             gbc.weightx = 1;
             gbc.fill = GridBagConstraints.HORIZONTAL;
-            gbc.insets = new Insets(0, 0, 5, 0);
+            gbc.insets = new Insets(2, 0, 2, 0);
             content.add(textContainer, gbc);
             content.add(Box.createVerticalGlue(), gbcGlue);
             content.revalidate();

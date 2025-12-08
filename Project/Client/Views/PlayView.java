@@ -5,12 +5,29 @@ import Project.Client.Interfaces.IGameSettingsEvent;
 import Project.Client.Interfaces.IPhaseEvent;
 import Project.Client.Interfaces.IPlayerStateEvent;
 import Project.Common.Phase;
+import java.awt.BorderLayout;
+import java.awt.Color;
+import java.awt.Cursor;
+import java.awt.Dimension;
+import java.awt.Font;
 import java.awt.GridLayout;
 import java.io.IOException;
+import javax.swing.BorderFactory;
 import javax.swing.JButton;
 import javax.swing.JPanel;
 
 public class PlayView extends JPanel implements IGameSettingsEvent, IPhaseEvent, IPlayerStateEvent, Project.Client.Interfaces.ITurnEvent {
+    // Custom color scheme - Dark Teal Theme
+    private static final Color BACKGROUND_DARK = new Color(28, 38, 43);
+    private static final Color ACCENT_TEAL = new Color(0, 188, 212);
+    private static final Color ACCENT_CORAL = new Color(255, 111, 97);
+    private static final Color BUTTON_ROCK = new Color(120, 85, 72);
+    private static final Color BUTTON_PAPER = new Color(66, 165, 245);
+    private static final Color BUTTON_SCISSORS = new Color(239, 83, 80);
+    private static final Color BUTTON_LIZARD = new Color(102, 187, 106);
+    private static final Color BUTTON_SPOCK = new Color(171, 71, 188);
+    private static final Color TEXT_LIGHT = new Color(236, 239, 241);
+    
     private final JPanel buttonPanel = new JPanel();
     private JButton rockBtn;
     private JButton paperBtn;
@@ -30,13 +47,21 @@ public class PlayView extends JPanel implements IGameSettingsEvent, IPhaseEvent,
 
     public PlayView(String name){
         this.setName(name);
-        buttonPanel.setLayout(new GridLayout(1,5,5,5));
+        this.setLayout(new BorderLayout(10, 10));
+        this.setBackground(BACKGROUND_DARK);
+        this.setBorder(BorderFactory.createEmptyBorder(15, 15, 15, 15));
+        
+        // Button panel - horizontal layout
+        buttonPanel.setLayout(new GridLayout(1, 5, 8, 8));
+        buttonPanel.setBackground(BACKGROUND_DARK);
+        buttonPanel.setBorder(BorderFactory.createEmptyBorder(15, 15, 15, 15));
 
-        rockBtn = new JButton("Rock");
-        paperBtn = new JButton("Paper");
-        scissorsBtn = new JButton("Scissors");
-        lizardBtn = new JButton("Lizard");
-        spockBtn = new JButton("Spock");
+        // Create styled buttons
+        rockBtn = createStyledButton("Rock", BUTTON_ROCK);
+        paperBtn = createStyledButton("Paper", BUTTON_PAPER);
+        scissorsBtn = createStyledButton("Scissors", BUTTON_SCISSORS);
+        lizardBtn = createStyledButton("Lizard", BUTTON_LIZARD);
+        spockBtn = createStyledButton("Spock", BUTTON_SPOCK);
 
         rockBtn.addActionListener(e -> sendPick("rock"));
         paperBtn.addActionListener(e -> sendPick("paper"));
@@ -50,7 +75,7 @@ public class PlayView extends JPanel implements IGameSettingsEvent, IPhaseEvent,
         buttonPanel.add(lizardBtn);
         buttonPanel.add(spockBtn);
 
-        this.add(buttonPanel);
+        this.add(buttonPanel, BorderLayout.CENTER);
 
         // disable extra options by default
         lizardBtn.setEnabled(false);
@@ -59,6 +84,22 @@ public class PlayView extends JPanel implements IGameSettingsEvent, IPhaseEvent,
         // register for settings updates
         Client.INSTANCE.registerCallback(this);
         // default visibility handled by changePhase
+    }
+    
+    private JButton createStyledButton(String text, Color bgColor) {
+        JButton btn = new JButton(text);
+        btn.setFont(new Font("SansSerif", Font.BOLD, 14));
+        btn.setBackground(bgColor);
+        btn.setForeground(TEXT_LIGHT);
+        btn.setFocusPainted(false);
+        btn.setBorder(BorderFactory.createCompoundBorder(
+            BorderFactory.createLineBorder(bgColor.darker(), 2),
+            BorderFactory.createEmptyBorder(12, 20, 12, 20)
+        ));
+        btn.setCursor(new Cursor(Cursor.HAND_CURSOR));
+        btn.setPreferredSize(new Dimension(130, 55));
+        btn.setOpaque(true);
+        return btn;
     }
 
     private void sendPick(String choice) {
