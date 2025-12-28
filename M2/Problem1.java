@@ -10,7 +10,7 @@ public class Problem1 extends BaseClass {
         printArrayInfo(arr, arrayNumber);
 
         // Challenge: Print odd values only in a single line separated by commas
-        // Step 1: sketch out plan using comments (include ucid and date)
+        // Step 1: sketch out plan using comments (include ucid and date) f
         // Step 2: Add/commit your outline of comments (required for full credit)
         // Step 3: Add code to solve the problem (add/commit as needed)
         // Date: 9/27/25
