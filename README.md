@@ -105,4 +105,4 @@ MIT License
 
 ---
 
-**Author:** rk975
+**Author:** Rayyan Khan
